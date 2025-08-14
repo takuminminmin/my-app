@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Walica - 割り勘システム</title>
+  <link rel="stylesheet" href="Walica.css">
+</head>
+<body>
+  <div class="container" id="container">
+    <h1>Walica</h1>
+    <div class="form-group">
+      <label for="groupName">グループ名</label>
+      <input type="text" id="groupName" placeholder="三重県旅行">
+      <span id="errGroupName" class="error"></span>
+    </div>
+    <div class="form-group inline">
+	  <label for="groupName">メンバー名</label>
+      <input type="text" id="memberName" placeholder="メンバー名を入力">
+      <button id="addMemberBtn" class="main-btn">追加</button>
+    </div>
+    <span id="errMemberName" class="error"></span>
+    <div id="memberList"></div>
+    <button id="crateGroup" class="main-btn create-btn">グループ作成</button>
+  </div>
+  
+  <button id="addRebuildRecord" class="main-btn create-btn container" style="display:none;">立替記録を追加</button>
+  
+  <div class="container" id="container2" style="display:none">
+	  <select id="payer"></select>が<br>
+	  <span id="receive"></span><br>
+	  <span id="errReceive" class="error"></span>
+	  の<input type="text" id="purpose" placeholder="ホテル代">を払って、<br>
+	  <span id="errPurpose" class="error"></span>
+	  <input type="number" id="charge" placeholder="15000">円かかった。<br>
+	  <span id="errCharge" class="error"></span>
+	  <button id="registration">登録</button>
+	  <button id="back">戻る</button>
+  </div>
+  
+  <div class="container" id="container3" style="display:none;">
+	  <span id="containerTable"></span>
+	  <span id="adjustment"></span>
+  </div>
+  
+  <script src="Walica.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
