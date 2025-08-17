@@ -6,8 +6,9 @@ body {
 }
 
 .container {
-  max-width: 400px;
-  margin: 50px auto;
+  max-width: 400px;     /* ← PC表示用の上限 */
+  width: 95%;           /* ← 画面幅に応じて縮む */
+  margin: 20px auto;    /* 上下余白を少し小さめに */
   padding: 20px;
   background-color: #fff;
   border-radius: 12px;
@@ -111,4 +112,12 @@ table th, table td {
 
 table th {
     background-color: #f0f0f0; 
+}
+
+@media (max-width: 480px) {
+  .main-btn {
+    width: 100%;   /* スマホではボタンを横幅いっぱいに */
+    padding: 12px;
+    font-size: 1rem;
+  }
 }
