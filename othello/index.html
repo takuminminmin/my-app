@@ -6,263 +6,74 @@
     </head>
     <body>
         <style>
-            #board{
-                display: grid;
-                grid-template-rows: repeat(8,50px);
-                grid-template-columns: repeat(8,50px);
-            }
-            .cell{
-                width:40px;
-                height: 40px;
-                background-color: green;
-                display:flex;
-                justify-content: center;
-                align-items: center;
-                border:1px solid #000;
-            }
-
-            .stone {
-                width: 30px;
-                height: 30px;
-            }
-
-            .black {
-		        background-image: url("front.png");
-		        background-size: cover;
-		    }
+		  /* スマホ画面対応 */
+		  #board{
+		      display: grid;
+		      grid-template-rows: repeat(8, 1fr);
+		      grid-template-columns: repeat(8, 1fr);
+		      width: 90vw;  /* 画面幅の90% */
+		      max-width: 400px; /* 最大幅 */
+		      aspect-ratio: 1 / 1; /* 正方形に固定 */
+		      margin: 0 auto;
+		      border: 2px solid #000;
+		  }
 		
-		    .white {
-		        background-image: url("back.png");
-		        background-size: cover;
-            }
-        </style>
+		  .cell{
+		      background-color: green;
+		      display:flex;
+		      justify-content: center;
+		      align-items: center;
+		      border: 1px solid #000;
+		      width: 100%;   /* grid内で自動調整 */
+		      height: 100%;  /* grid内で自動調整 */
+		  }
+		
+		  .stone{
+		      width: 90%;    /* マスの90%に調整 */
+		      height: 90%;
+		  }
+		
+		  .black {
+		      background-image: url("png/black_back.png");
+		      background-size: cover;
+		  }
+		
+		  .white {
+		      background-image: url("png/front.png");
+		      background-size: cover;
+		  }
+		
+		  /* タイトルや選択ボタンも画面幅に合わせる */
+		  h1{
+		      text-align: center;
+		      font-size: 5vw;
+		      max-font-size: 32px;
+		  }
+		
+		  #startDiv{
+		      text-align: center;
+		      margin-bottom: 10px;
+		  }
+		
+		  select, button{
+		      font-size: 4vw;
+		      max-font-size: 20px;
+		      margin: 5px;
+		  }
+		</style>
 
-        <h1>オセロゲームをやりたい</h1>
-        <div id="status">黒色の番です</div>
+        <h1>オセロゲーム</h1>
+        <div id="startDiv">
+        <select id="selectedMode">
+			<option value="only" selected>CPと対戦</option>
+			<option value="battle">友達と対戦</option>
+		</select>
+		<button id="startBtn">スタート</button>
+		</div>
+        <div id="status"></div>
         <div id="timer"></div>
         <div id="board"></div>
 
-        <script>
-            const status = document.getElementById("status");
-            const board = document.getElementById("board");
-            const timer = document.getElementById("timer");
-            const cells = Array.from({ length: 8 }, () => Array(8).fill(0));
-            let currentPlayer = 1;
-            let enemyPlayer = 2;
-            let skipped = false;
-            let gameOver = false;
-            let intervalId = null;
-
-            // 盤面外チェック用の共通関数を追加
-            const inBounds = (y, x) => y >= 0 && y < 8 && x >= 0 && x < 8;
-
-            const createBoard = () => {
-                board.innerHTML = "";
-                for(let y=0;y < 8;y++){
-                    for(let x=0;x < 8;x++){
-                        const cell = document.createElement("div");
-                        cell.className = "cell";
-                        cell.dataset.x = x;
-                        cell.dataset.y = y;
-                        cell.addEventListener('click',handleClick);
-                        board.appendChild(cell);
-                        if((x===3 && y===4) || (x===4 && y===3)){
-                            cells[y][x] = 1;//黒
-                            const stone = document.createElement("div");
-                            stone.classList.add("stone","black");
-                            cell.appendChild(stone);
-                        }
-                        else if((x===3 && y===3) || (x===4 && y===4)){
-                            cells[y][x] = 2;//白
-                            const stone = document.createElement("div");
-                            stone.classList.add("stone","white");
-                            cell.appendChild(stone);
-                        }
-                    }
-                }
-            }
-
-            const handleClick = (e) => {
-                const clickedCell = e.target;
-                if(clickedCell.className.includes("stone")){
-                    console.log("そのマスはすでに石があるためおけません")
-                    return;
-                }
-                const x = parseInt(clickedCell.dataset.x);
-                const y = parseInt(clickedCell.dataset.y);
-                if(gameOver || !checkPass(y,x)){
-                    console.log("ひっくり返らないためおけません")
-                    return;
-                }
-                countDown(30);
-                turnOverStones(y,x);
-
-                // 重複していた各方向の処理をループに変更 ← 修正
-                for (const [dy, dx] of directions) {
-                    flipDirection(y, x, dy, dx);
-                }
-
-                // 空きマスがないなら終了
-                if(cells.flat().filter(element => element === 0).length === 0){
-                    console.log("すべてのマスが埋まりました");
-                    gameOver = true;
-                    winner(false);
-                    return;
-                }
-                changePlayer();
-                if(checkPassMain()){
-                    console.log("次のプレイヤーはおけます");
-                    skipped = false;
-                }
-                else{
-                    if(skipped === true){
-                        gameOver = true;
-                        winner(false);
-                    }
-                    else{
-                        skipped = true;
-                        let message = currentPlayer === 1 ? "黒色" : "白色";
-                        message += "の石を置けるマスがないためスキップされます";
-                        console.log(message)
-                        window.alert(message);
-                        changePlayer();
-                    }
-                }
-            }
-
-            // 石を置ける全方向（8方向）を定義
-            const directions = [
-                [-1, -1], [-1, 0], [-1, 1],
-                [ 0,  1], [ 1,  1], [ 1, 0],
-                [ 1, -1], [ 0, -1]
-            ];
-
-            const winner = (timeOut) => {
-                clearInterval(intervalId);
-                let message = "";
-                if(timeOut){
-                    message += "タイムアウト！！"
-                    message += currentPlayer === 1 ? "白の勝ち" : "黒の勝ち";
-                }
-                else{
-                    const blackStones = cells.flat().filter(element => element === 1).length;
-                    const whiteStones = cells.flat().filter(element => element === 2).length;
-                    message += "黒：" + blackStones+ "白：" + whiteStones;
-                    message += (blackStones >= whiteStones) ? "  黒の勝ち" : "  白の勝ち";
-                }
-                status.textContent = message;
-            }
-
-            const countDown = (timeLeft) => {
-                clearInterval(intervalId);
-                timer.textContent = "残り時間：" + timeLeft;
-                intervalId = setInterval(() => {
-                    timeLeft--;
-                    timer.textContent = "残り時間：" + timeLeft;
-                    if(timeLeft <= 0){
-                        winner(true);
-                    }
-                }, 1000);
-            }
-
-            const flipDirection = (y,x,j,i) => {
-                let checkY = y+j;
-                let checkX = x+i;
-                let turnOverArr = [];
-                if(checkY > -1 && checkY < 8 && checkX > -1 && checkX < 8){
-                    if(cells[checkY][checkX] === enemyPlayer){
-                        let innerArr = [];
-                        innerArr.push(checkY);
-                        innerArr.push(checkX);
-                        turnOverArr.push(innerArr);
-
-                        while(true){
-                            checkY = checkY+j;
-                            checkX = checkX+i;
-                            if(checkY > -1 && checkY < 8 && checkX > -1 && checkX < 8){
-                                if(cells[checkY][checkX] === currentPlayer){
-                                    for(let i=0;i<turnOverArr.length;i++){
-                                        const getY = turnOverArr[i][0];
-                                        const getX = turnOverArr[i][1];
-                                        turnOverStones(getY,getX);
-                                    }
-                                }
-                                else if(cells[checkY][checkX] === enemyPlayer){
-                                    let innerArr = [];
-                                    innerArr.push(checkY);
-                                    innerArr.push(checkX);
-                                    turnOverArr.push(innerArr);
-                                    continue;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-
-            //石をひっくり返す
-            const turnOverStones = (y,x) => {
-                cells[y][x] = currentPlayer;
-                const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
-                const oldStone = cell.querySelector(".stone");
-                if (oldStone) {
-                    cell.removeChild(oldStone);
-                }
-                const stone = document.createElement("div");
-                const stoneColor = currentPlayer === 1 ? "black" : "white";
-                stone.classList.add("stone",stoneColor);
-                cell.appendChild(stone);
-            }
-
-            const changePlayer = () => {
-                if(currentPlayer === 1){
-                    currentPlayer = 2;
-                    enemyPlayer = 1;
-                    status.textContent = "白色の番です";
-                }
-                else{
-                    currentPlayer = 1;
-                    enemyPlayer = 2;
-                    status.textContent = "黒色の番です";
-                }
-            }
-
-            const checkPassMain = () => {
-                for(let y=0;y<8;y++){
-                    for(let x=0;x<8;x++){
-                        if(cells[y][x] === 0 && checkPass(y,x)){
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            }
-
-            const checkPass = (y,x) => {
-                return directions.some(([dy, dx]) => canPlaceStone(y, x, dy, dx));
-            }
-
-            const canPlaceStone = (y,x,j,i) => {
-                let checkY = y+j;
-                let checkX = x+i;
-
-                if(!inBounds(checkY, checkX) || cells[checkY][checkX] !== enemyPlayer){
-                    return false;
-                }
-                while(true){
-                    checkY += j;
-                    checkX += i;
-                    if(!inBounds(checkY, checkX)) break;
-                    if(cells[checkY][checkX] === currentPlayer) return true;
-                    if(cells[checkY][checkX] !== enemyPlayer) break;
-                }
-
-                return false;
-            }
-
-            createBoard();
-
-        </script>
+        <script src="Othello_PiyoPiyo.js"></script>
     </body>
 </html>
