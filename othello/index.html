@@ -6,61 +6,64 @@
     </head>
     <body>
         <style>
-		  /* スマホ画面対応 */
-		  #board{
-		      display: grid;
-		      grid-template-rows: repeat(8, 1fr);
-		      grid-template-columns: repeat(8, 1fr);
-		      width: 90vw;  /* 画面幅の90% */
-		      max-width: 400px; /* 最大幅 */
-		      aspect-ratio: 1 / 1; /* 正方形に固定 */
-		      margin: 0 auto;
-		      border: 2px solid #000;
-		  }
-		
-		  .cell{
-		      background-color: green;
-		      display:flex;
-		      justify-content: center;
-		      align-items: center;
-		      border: 1px solid #000;
-		      width: 100%;   /* grid内で自動調整 */
-		      height: 100%;  /* grid内で自動調整 */
-		  }
-		
-		  .stone{
-		      width: 90%;    /* マスの90%に調整 */
-		      height: 90%;
-		  }
-		
-		  .black {
-		      background-image: url("png/black_back.png");
-		      background-size: cover;
-		  }
-		
-		  .white {
-		      background-image: url("png/front.png");
-		      background-size: cover;
-		  }
-		
-		  /* タイトルや選択ボタンも画面幅に合わせる */
-		  h1{
-		      text-align: center;
-		      font-size: 5vw;
-		      max-font-size: 32px;
-		  }
-		
-		  #startDiv{
-		      text-align: center;
-		      margin-bottom: 10px;
-		  }
-		
-		  select, button{
-		      font-size: 4vw;
-		      max-font-size: 20px;
-		      margin: 5px;
-		  }
-		</style>
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+
+  h1 {
+    text-align: center;
+  }
+
+  #startDiv {
+    margin-bottom: 10px;
+  }
+
+  #status, #timer {
+    width: 90%;          /* ボードに合わせて左揃え */
+    text-align: left;
+    margin-bottom: 5px;
+    font-size: 1.2em;
+  }
+
+  #board {
+    display: grid;
+    grid-template-rows: repeat(8, 1fr);
+    grid-template-columns: repeat(8, 1fr);
+    width: 90vw;         /* 画面横幅の90% */
+    max-width: 500px;    /* 大きすぎないように上限 */
+    aspect-ratio: 1;     /* 正方形を維持 */
+    border: 2px solid #000;
+  }
+
+  .cell {
+    background-color: green;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #000;
+  }
+
+  .stone {
+    width: 90%;          /* マスの大きさに合わせる */
+    height: 90%;
+    background-size: cover;
+    background-position: center;
+  }
+
+  .black {
+    background-image: url("png/black_back.png");
+  }
+
+  .white {
+    background-image: url("png/front.png");
+  }
+</style>
+
 
         <h1>オセロゲーム</h1>
         <div id="startDiv">
