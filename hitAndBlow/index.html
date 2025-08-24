@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="utf-8">
+        <title>Hit&Blow</title>
+        <link rel="stylesheet" href="hitAndBlow.css">
+    </head>
+    <body>
+        <div class="container">
+            <h1>Hit&Blow 数あてゲーム</h1>
+
+            <label for="mode">モード選択:</label>
+            <select id="mode">
+                <option value="vsPC">CPと対戦</option>
+                <option value="battle">二人で対戦</option>
+            </select>
+
+            <label for="digits">桁数:</label>
+            <select id="digits">
+                <option value="3">3桁</option>
+                <option value="4">4桁</option>
+            </select>
+
+            <label for="timer">制限時間:</label>
+            <select id="timer">
+                <option value="noTimeLimit">制限時間:なし</option>
+                <option value="30">制限時間:30s</option>
+                <option value="60">制限時間:60s</option>
+                <option value="90">制限時間:90s</option>
+            </select>
+
+            <button id="gameStart">スタート</button>
+            <button id="retry" disabled>再チャレンジ</button>
+
+            <p id="countDown"></p>
+            <div id="message"></div>
+
+            <input type="number" id="inputNum" class="inputNum" disabled>
+            <button id="send" disabled>決定</button>
+
+            <h2 id="finish"></h2>
+
+            <!-- 対戦用テーブル -->
+            <div id="tablesWrapper" style="display:none;">
+                <div id="tableContainer_player1"></div>
+                <div id="tableContainer_player2"></div>
+            </div>
+
+            <!-- CP対戦用テーブル -->
+            <div id="tableContainer"></div>
+        </div>
+
+        <script src="hitAndBlow.js"></script>
+    </body>
+</html>

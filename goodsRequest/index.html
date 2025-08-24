@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>備品購入申請フォーム</title>
+    <link rel="stylesheet" href="goodsRequest.css">
+</head>
+<body>
+    <h1>備品購入申請フォーム</h1>
+
+    <!-- 申請フォーム -->
+    <form id="applicationForm">
+        <label for="applicantName">申請者名 ※</label>
+        <input type="text" id="applicantName" name="applicantName">
+        <span id="errName" class="error"></span>
+
+        <label for="department">所属部門 ※</label>
+        <select id="department" name="department">
+            <option value="">--選択してください--</option>
+            <option value="hr">人事部</option>
+            <option value="dev">開発部</option>
+            <option value="sales">営業部</option>
+        </select>
+        <span id="errDepartment" class="error"></span>
+
+        <label for="goods">購入品名 ※</label>
+        <input type="text" id="goods" name="goods">
+        <span id="errGoods" class="error"></span>
+
+        <label for="quantity">数量 ※</label>
+        <input type="number" id="quantity" name="quantity" min="1">
+        <span id="errQuantity" class="error"></span>
+
+        <label for="date">希望日 ※</label>
+        <input type="date" id="date" name="date">
+        <span id="errDate" class="error"></span>
+
+        <label for="reason">理由・用途</label>
+        <textarea id="reason" name="reason"></textarea>
+        <span id="errReason" class="error"></span>
+
+        <label for="file">添付ファイル（jpg/png/pdf）</label>
+        <input type="file" id="file" name="file">
+        <span id="errFile" class="error"></span>
+
+        <button type="submit" class="main-btn">承認申請</button>
+        <button id="reset" type="button" class="main-btn gray-btn">入力消去</button>
+    </form>
+
+    <div id="result"></div>
+    <div id="tableContainer"></div>
+
+    <!-- 承認フォーム -->
+    <form id="approverForm">
+        <label for="approver">承認者を選択してください</label>
+        <select id="approver" name="approver" disabled>
+            <option value="">--選択--</option>
+        </select>
+        <span id="errApprover" class="error"></span>
+
+        <label for="password">承認者のパスワードを入力してください</label>
+        <input type="password" id="password" name="password" disabled>
+        <span id="passwordErr" class="error"></span>
+
+        <button type="submit" name="action" value="approval" id="btnApproval" class="main-btn">承認</button>
+        <button type="submit" name="action" value="rejection" id="btnRejection" class="main-btn gray-btn">却下</button>
+    </form>
+
+    <form id="tableForm">
+        <span id="historyTable"></span>
+        <span id="condition"></span>
+        <button type="submit" name="action" value="edit" id="btnEdit" class="main-btn">編集</button>
+        <button type="submit" name="action" value="delete" id="btnDelete" class="main-btn gray-btn">削除</button>
+        <button type="submit" name="action" value="create" id="btnCreate" class="main-btn">新規作成</button>
+    </form>
+    <script src="goodsRequest.js"></script>
+</body>
+</html>
