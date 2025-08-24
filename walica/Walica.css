@@ -77,6 +77,12 @@ select {
     margin-top: 20px;
 }
 
+/* í«â¡É{É^ÉìÇ‡â°ïù100%Ç… */
+#addMemberBtn {
+    width: 100%;
+    margin-top: 10px;
+}
+
 #memberList {
     margin-top: 10px;
 }
@@ -118,7 +124,8 @@ table {
     display: block;
 }
 
-table th, table td {
+table th,
+table td {
     border: 1px solid black;
     padding: 8px;
     text-align: left;
