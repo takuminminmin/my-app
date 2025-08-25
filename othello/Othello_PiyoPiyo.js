@@ -17,7 +17,7 @@ let skipped  = false;
 let timerId  = null;
 const setTimer = 30;
 let timeLeft = setTimer;
-CPU_DELAY_MS = 1000;
+const CPU_DELAY_MS = 1000;
 
 // 8方向ベクトル
 const directions = [
@@ -100,7 +100,6 @@ const countFlippableStones = (y, x, j, i) => {
         cy += j;
         cx += i;
     }
-
     return (inBounds(cy, cx) && cells[cy][cx] === currentPlayer) ? count : 0;
 };
 
@@ -190,7 +189,6 @@ const startTimer = () => {
 // ====== Board ======
 const createBoard = () => {
     boardEl.innerHTML = "";
-
     for (let y = 0; y < N; y++) {
         for (let x = 0; x < N; x++) {
             const cell = document.createElement("div");
@@ -227,7 +225,6 @@ const onCellClick = (e) => {
     }
     applyMove(y,x);
     if(gameOver){
-		console.log("勝負はついた")
 		return;
 	}
     if (!hasAnyMove()) {
@@ -288,7 +285,7 @@ const cpuMove = () => {
             }
             const flips = totalFlipsAt(y, x);
             if(flips > 0 && (flips + POSITION_VALUE[y][x]) > max){
-                max = posValueFlips;
+                max = flips + POSITION_VALUE[y][x];
                 best = { y, x };
 			}
         }
@@ -305,10 +302,9 @@ const cpuMove = () => {
     }
     skipped = false;
     applyMove(best.y, best.x);
-    if (cells.flat().every(v => v !== 0)) {
-        winner();
-        return;
-    }
+    if(gameOver === true){
+		return;
+	}
     if (!hasAnyMove()) {
         if (skipped) {
             winner();
