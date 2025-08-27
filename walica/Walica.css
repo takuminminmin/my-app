@@ -30,7 +30,7 @@ h1 {
     width: 100%;
 }
 
-.form-group label {
+label {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
@@ -163,4 +163,8 @@ table th {
         height: 30px;
         line-height: 30px;
     }
+}
+
+ .highlight {
+    background-color: yellow; /* îwåiÇâ©êFÇ… */
 }

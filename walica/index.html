@@ -7,11 +7,11 @@
   <link rel="stylesheet" href="Walica.css">
 </head>
 <body>
-  <div class="container" id="container">
+  <div class="container" id="groupSetupContainer">
     <h1>Walica</h1>
     <div class="form-group">
       <label for="groupName">グループ名</label>
-      <input type="text" id="groupName" placeholder="三重県旅行">
+      <input type="text" id="groupName" placeholder="グループ名を入力">
       <span id="errGroupName" class="error"></span>
     </div>
     <div class="form-group">
@@ -22,22 +22,28 @@
     <span id="errMemberName" class="error"></span>
     <div id="memberList"></div>
     <button id="crateGroup" class="main-btn create-btn">グループ作成</button>
+    <button id="deleteAll" class="main-btn">全てのデータ初期化</button>
   </div>
-  <button id="addRebuildRecord" class="main-btn create-btn container" style="display:none;">立替記録を追加</button>
-  <div class="container" id="container2" style="display:none">
-	  <select id="payer"></select>が<br>
-	  <span id="receive"></span><br>
+  <div class="container" id="expenseEntryContainer" style="display:none;">
+	  <label for="payer">立て替えた人</label>
+	  <select id="payer"></select><br>
+	  <label for="receive">対象メンバ</label>
+	  <span id="receive"></span>
 	  <span id="errReceive" class="error"></span>
-	  の<input type="text" id="purpose" placeholder="ホテル代">を払って、<br>
+	  <label for="purpose">立て替えた物</label>
+	  <input type="text" id="purpose" placeholder="立て替えた物を入力"><br>
 	  <span id="errPurpose" class="error"></span>
-	  <input type="number" id="charge" placeholder="15000">円かかった。<br>
+	  <label for="charge">金額(円)</label>
+	  <input type="number" id="charge" placeholder="金額を入力">円<br>
 	  <span id="errCharge" class="error"></span>
 	  <button id="registration">登録</button>
-	  <button id="back">戻る</button>
   </div>
   
-  <div class="container" id="container3" style="display:none;">
+  <div class="container" id="recordsContainer" style="display:none;">
 	  <span id="containerTable"></span>
+	  <span id="errRowBtn" class="error"></span>
+	  <button id="editRowBtn" disabled>編集</button>
+	  <button id="deleteRowBtn" disabled>削除</button>
 	  <span id="adjustment"></span>
   </div>
   

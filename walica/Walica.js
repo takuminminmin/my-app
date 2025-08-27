@@ -1,26 +1,40 @@
 let memberArr = [];
 let chargeSum = 0;
-let addRebuildRecordBtn = false;
 let arrExpenseRecords = [];
 const chargeAdjustmentObj = {};
 // localStorageのキー名
 const STORAGE_KEY = "records";
+let selectedRecord = null;
 
+const groupName = document.getElementById("groupName");
+const select = document.getElementById("payer");
+const receive = document.getElementById("receive");
+const purpose = document.getElementById("purpose");
+const charge = document.getElementById("charge");
+const editRowBtn = document.getElementById("editRowBtn");
+const deleteRowBtn = document.getElementById("deleteRowBtn");
+const containerTable = document.getElementById("containerTable");
+
+//ロードされたときの処理.
 window.addEventListener("DOMContentLoaded", () => {
-//	localStorage.removeItem(STORAGE_KEY)
-	
 	const dataObj = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 	if (Object.keys(dataObj).length !== 0) {
-		document.getElementById("groupName").value = dataObj["groupName"];
+		groupName.value = dataObj["groupName"];
+		groupName.disabled = true;
 		dataObj["memberArr"].forEach(memberName => createMember(memberName));
-		document.getElementById("addRebuildRecord").style.display = "block";
+		createExpenseEntryContainer();
 		if("resultDiv" in dataObj){
-			document.getElementById("container3").style.display = "block";
+			document.getElementById("recordsContainer").style.display = "block";
 			arrExpenseRecords = dataObj["arrExpenseRecords"];
 			createAdjustmentTable(arrExpenseRecords);
 			document.getElementById("adjustment").innerHTML = dataObj["resultDiv"];
 		}
 	}
+})
+
+document.getElementById("deleteAll").addEventListener("click", () => {
+	localStorage.removeItem(STORAGE_KEY);
+	location.reload();
 })
 
 const addData = (key,value) => {
@@ -49,23 +63,19 @@ const createMember = (memberName) => {
     // メンバー要素の作成
 	const memberDiv = document.createElement('div');
 	memberDiv.className = 'member';
-
 	  // 名前表示用のspan
 	  const nameSpan = document.createElement('span');
 	  nameSpan.textContent = memberName;
-	
 	  // 削除ボタン
 	  const removeBtn = document.createElement('button');
 	  removeBtn.textContent = '×';
 	  removeBtn.className = 'remove-btn';
-
 	  // 削除イベント
 	  removeBtn.addEventListener('click', () => {
 	    memberDiv.remove();
 	    memberArr = memberArr.filter(val => val !== memberName);
 	    addData("memberArr",memberArr);
 	  });
-	
 	  // 要素をまとめる
 	  memberDiv.appendChild(nameSpan);
 	  memberDiv.appendChild(removeBtn);
@@ -86,9 +96,9 @@ document.getElementById("memberName").addEventListener("keydown",(e) => {
  */
 document.getElementById("crateGroup").addEventListener("click",() => {
 	document.querySelectorAll(".error").forEach(val => val.innerHTML = "");
-	const groupName = document.getElementById("groupName").value.trim();
+	const groupNameVal = groupName.value.trim();
 	let hasErr = false;
-	if(!groupName){
+	if(!groupNameVal){
 		document.getElementById("errGroupName").textContent = "グループ名を入力してください";
 		hasErr = true;
 	}
@@ -99,31 +109,24 @@ document.getElementById("crateGroup").addEventListener("click",() => {
 	if(hasErr){
 		return;
 	}
-	document.getElementById("addRebuildRecord").style.display = "block";
-	addData("groupName",groupName);
+	addData("groupName",groupNameVal);
+	groupName.disabled = true;
+	createExpenseEntryContainer();
 })
 
-document.getElementById("addRebuildRecord").addEventListener("click",() => {
-	if(addRebuildRecordBtn){
-		return;
-	}
-	if(memberArr.length === 0){
-		alert("グループを作成してください(先ず隗より始めよ)");
-		return;
-	}
-	addRebuildRecordBtn = true;
-	
-	document.getElementById("container2").style.display = "block";
-	//プルダウンリストの作成
-	const select = document.getElementById("payer");
+/**
+ * expenseEntryContainerのプルダウンリスト、チェックボックスの作成.
+ */
+const createExpenseEntryContainer = () => {
+	document.getElementById("expenseEntryContainer").style.display = "block";
+	//プルダウンリストの作成.
 	memberArr.forEach(val => {
 		const option = document.createElement("option");
 		option.textContent = val;
 		option.value = val;
 		select.appendChild(option);
 	})
-	
-	const receive = document.getElementById("receive");
+	//チェックボックスの作成.
 	memberArr.forEach(val => {
 		const checkbox = document.createElement("input");
 		checkbox.type = "checkbox";
@@ -135,7 +138,7 @@ document.getElementById("addRebuildRecord").addEventListener("click",() => {
 	  	label.appendChild(document.createTextNode(val));
 	  	receive.appendChild(label);
   	})
-})
+}
 
 /**
  * 登録ボタン押下時の処理
@@ -152,13 +155,13 @@ document.getElementById("registration").addEventListener("click",() => {
 	}
 	const checkedMember = Array.from(checkboxes).map(cb => cb.value);
 	
-	const purpose = document.getElementById("purpose").value.trim();
-	if(!purpose){
+	const purposeVal = purpose.value.trim();
+	if(!purposeVal){
 		document.getElementById("errPurpose").textContent= "支払い名を入力してください";
 		hasErr = true;
 	}
-	const charge = document.getElementById("charge").value;
-	if(charge < 1){
+	const chargeVal = charge.value;
+	if(chargeVal < 1){
 		document.getElementById("errCharge").textContent= "金額は1円以上を入力してください";
 		hasErr = true;
 	}
@@ -166,12 +169,14 @@ document.getElementById("registration").addEventListener("click",() => {
 		return;
 	}
 	else{
-		chargeSum += charge;
+		chargeSum += chargeVal;
 	}
-	addExpenseRecords(payer,checkedMember,purpose,charge);
+	addExpenseRecords(payer,checkedMember,purposeVal,chargeVal);
 	["purpose","charge"].forEach(eleName => document.getElementById(eleName).value = "");
+	
+	arrExpenseRecords = arrExpenseRecords.filter(val => val !== selectedRecord);
 	createAdjustmentTable(arrExpenseRecords);
-	document.getElementById("container3").style.display = "block";
+	document.getElementById("recordsContainer").style.display = "block";
 	memberArr.forEach(member => calculationCharge(member));
 	
 	//誰が誰にいくら払うかの計算
@@ -244,10 +249,10 @@ const addExpenseRecords = (payer,checkedMember,purpose,charge) => {
  * 立替え記録一覧の作成
  */
 const createAdjustmentTable = (arrExpenseRecords) => {
-	const containerTable = document.getElementById("containerTable");
+	
 	containerTable.innerHTML = "";
 	const table = document.createElement("table");
-	["支払い名","立替え人","対象メンバー","金額(円)"].forEach(val => {
+	["立て替えた物","立て替えた人","対象メンバ","金額(円)"].forEach(val => {
 		const th = document.createElement("th");
 		th.textContent = val;
 		table.appendChild(th);
@@ -259,42 +264,50 @@ const createAdjustmentTable = (arrExpenseRecords) => {
 			td.textContent = record[val];
 			tr.appendChild(td);
 		})
-		const editBtn = document.createElement("div");
-		editBtn.textContent = "削除";
-		editBtn.addEventListener("click", () => {
-			tr.remove();
-			arrExpenseRecords = arrExpenseRecords.filter(val => val !== record);
-			addData("arrExpenseRecords",arrExpenseRecords);
+		tr.addEventListener("click", () => {
+			table.querySelectorAll("tr").forEach(r => r.classList.remove("highlight"));
+			editRowBtn.disabled = false;
+			deleteRowBtn.disabled = false;
+			selectedRecord = record;
+			tr.classList.add("highlight");
 		})
-		tr.appendChild(editBtn);
-		
-		
 		table.appendChild(tr);
 	})
 	containerTable.appendChild(table);
 	addData("arrExpenseRecords",arrExpenseRecords);
 }
 
+editRowBtn.addEventListener("click", () => {
+	containerTable.querySelectorAll("tr").forEach(r => r.classList.remove("highlight"));
+	//プルダウンリストの選択を変更.
+	const opt = select.options;
+	for (let i = 0; i < opt.length; i++) {
+	    if (opt[i].textContent === selectedRecord["payer"]) {
+	        select.selectedIndex = i; // その option を選択状態にする
+	        break;
+	    }
+	}
+	//チェックボックスのチェックを変更.
+	const labels = receive.querySelectorAll("label");
+	labels.forEach(label => {
+		const checkbox = label.querySelector("input[type=checkbox]");
+		if(selectedRecord["checkedMember"].includes(label.textContent.trim())){
+        	checkbox.checked = true;
+		}
+		else{
+			checkbox.checked = false;
+		}
+    });
+	purpose.value = selectedRecord["purpose"];
+	charge.value = selectedRecord["charge"];
+	
+})
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+deleteRowBtn.addEventListener("click", () => {
+	document.getElementById("containerTable").querySelector(".highlight").remove();
+	arrExpenseRecords = arrExpenseRecords.filter(val => val !== selectedRecord);
+	addData("arrExpenseRecords",arrExpenseRecords);
+})
 
 
 
