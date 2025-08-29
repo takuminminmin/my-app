@@ -6,7 +6,7 @@ const chargeAdjustmentObj = {};
 const STORAGE_KEY = "records";
 let selectedRecord = null;
 
-const createGroup = document.getElementById("createGroup");
+const createGroupBtn = document.getElementById("createGroupBtn");
 const groupName = document.getElementById("groupName");
 const errMemberName = document.getElementById("errMemberName");
 const mode = document.getElementById("mode");
@@ -18,11 +18,11 @@ const editRowBtn = document.getElementById("editRowBtn");
 const deleteRowBtn = document.getElementById("deleteRowBtn");
 const containerTable = document.getElementById("containerTable");
 const adjustment = document.getElementById("adjustment");
-const recordsContainer = document.getElementById("recordsContainer");
 const errRowBtn = document.getElementById("errRowBtn");
 const deleteAll = document.getElementById("deleteAll");
 const groupSetupContainer = document.getElementById("groupSetupContainer");
 const expenseEntryContainer = document.getElementById("expenseEntryContainer");
+const recordsContainer = document.getElementById("recordsContainer");
 
 //ロードされたときの処理.
 window.addEventListener("DOMContentLoaded", () => {
@@ -69,9 +69,12 @@ const addMember = () => {
     }
     createMember(memberName);
     document.getElementById("memberName").value = "";
-    if(createGroup.disabled){
+    if(createGroupBtn.disabled && memberArr.length >= 2){
 		addData("memberArr", memberArr);
     	defaultExpenseEntryContainer();
+    	if(arrExpenseRecords.length !== 0){
+			recordsContainer.style.display = "block";
+		}
 	}
 }
 
@@ -91,10 +94,15 @@ const createMember = (memberName) => {
     removeBtn.addEventListener('click', () => {
         memberDiv.remove();
         memberArr = memberArr.filter(val => val !== memberName);
-        if(createGroup.disabled){
+        if(createGroupBtn.disabled){
 	        addData("memberArr", memberArr);
 	        defaultExpenseEntryContainer();
         }
+        if (memberArr.length < 2) {
+	        errMemberName.textContent = "メンバーを2人以上追加してください";
+	        expenseEntryContainer.style.display = "none";
+	        recordsContainer.style.display = "none";
+	    }
     });
     // 要素をまとめる
     memberDiv.appendChild(nameSpan);
@@ -114,7 +122,7 @@ document.getElementById("memberName").addEventListener("keydown", (e) => {
 /**
  * 「グループ作成」ボタン押下時の処理
  */
-createGroup.addEventListener("click", () => {
+createGroupBtn.addEventListener("click", () => {
     document.querySelectorAll(".error").forEach(val => val.innerHTML = "");
     const groupNameVal = groupName.value.trim();
     let hasErr = false;
@@ -133,12 +141,14 @@ createGroup.addEventListener("click", () => {
     addData("memberArr", memberArr);
     groupDisabled();
     defaultExpenseEntryContainer(); 
-    select.focus();
+    select.scrollIntoView({
+        behavior: "smooth",
+    });
 })
 
 const groupDisabled = () => {
     groupName.disabled = true;
-    createGroup.disabled = true;
+    createGroupBtn.disabled = true;
     deleteAll.style.display = "block";
 }
 
@@ -147,7 +157,7 @@ const groupDisabled = () => {
  */
 const defaultExpenseEntryContainer = () => {
 	mode.textContent = "新規作成";
-    document.getElementById("expenseEntryContainer").style.display = "block";
+    expenseEntryContainer.style.display = "block";
     //初期化.
     ["purpose", "charge"].forEach(eleName => document.getElementById(eleName).value = "");
     ["payer", "receive"].forEach(eleName => document.getElementById(eleName).innerHTML = "");
@@ -375,7 +385,9 @@ editRowBtn.addEventListener("click", () => {
     });
     purpose.value = selectedRecord["purpose"];
     charge.value = selectedRecord["charge"];
-    select.focus();
+    select.scrollIntoView({
+        behavior: "smooth",
+    });
 })
 
 /**
@@ -390,7 +402,9 @@ deleteRowBtn.addEventListener("click", () => {
     createAdjustmentCalc();
     if(arrExpenseRecords.length === 0){
 		recordsContainer.style.display = "none";
-		select.focus();
+		select.scrollIntoView({
+	        behavior: "smooth",
+	    });
 	}
 })
 
