@@ -5,19 +5,21 @@ const timerEl      = document.getElementById("timer");
 const startBtn     = document.getElementById("startBtn");
 const startDiv     = document.getElementById("startDiv");
 const selectedMode = document.getElementById("selectedMode");
+const cpuLevelEl = document.getElementById("cpuLevel");
 
 // ====== State ======
 const N = 8;
 const cells = Array.from({ length: N }, () => Array(N).fill(0)); // 0:空, 1:黒, 2:白
 let currentPlayer = 1; // 1=黒, 2=白
 let enemyPlayer   = 2;
-let mode = "";         // "only" = CP対戦 / "battle" = 友達対戦
+let mode = "";         // "cpuMode" = CP対戦 / "friendMode" = 友達対戦
 let gameOver = false;
 let skipped  = false;
 let timerId  = null;
-const setTimer = 30;
-let timeLeft = setTimer;
-const CPU_DELAY_MS = 1000;
+let setTimer = null;
+let timeLeft = null;
+let cpuLevel = null;
+let playerTurnEnd = true;
 
 // 8方向ベクトル
 const directions = [
@@ -44,7 +46,7 @@ const inBounds = (y, x) => {
 };
 
 const setStatus = () => {
-    statusEl.textContent = currentPlayer === 1 ? "黒ピヨの番です" : "白ピヨの番です";
+    statusEl.textContent = currentPlayer === 1 ? "黒ピヨの番" : "白ピヨの番";
 };
 
 const resetState = () => {
@@ -55,11 +57,13 @@ const resetState = () => {
     enemyPlayer   = 2;
     gameOver = false;
     skipped  = false;
-    timeLeft = setTimer;
-    clearInterval(timerId);
-    timerEl.style.color = "black";
-    timerEl.style.fontWeight = "normal";
-    timerEl.textContent = "残り時間：" + timeLeft + "秒";
+    if(setTimer !== "noLimited"){
+		timeLeft = setTimer;
+	    clearInterval(timerId);
+	    timerEl.style.color = "black";
+	    timerEl.style.fontWeight = "normal";
+	    timerEl.textContent = "残り：" + timeLeft + "秒";
+	}
 };
 
 /**
@@ -121,7 +125,15 @@ const totalFlipsAt = (y, x) => {
 const changePlayer = () => {
     [currentPlayer, enemyPlayer] = [enemyPlayer, currentPlayer];
     setStatus();
-    startTimer();
+    if(setTimer !== "noLimited"){
+        startTimer();
+    }
+    // CPUの番ならクリック禁止
+    if (mode === "cpuMode" && currentPlayer === 2) {
+        playerTurnEnd = false;
+    } else {
+        playerTurnEnd = true;
+    }
 };
 
 /**
@@ -138,24 +150,24 @@ const hasAnyMove = () => {
  */
 const winner = () => {
     clearInterval(timerId);
+    timerEl.style.display = "none";
     const blackLen = cells.flat().filter(v => v === 1).length;
     const whiteLen = cells.flat().filter(v => v === 2).length;
     let msg = `黒ピヨ：${blackLen}　白ピヨ：${whiteLen}　→ `;
-    if (timeLeft <= 0) {
-        msg += `タイムアウトで${(currentPlayer === 2 ? "黒ピヨ" : "白ピヨ")}の勝ち`
-    }
-    else {
-        if(blackLen > whiteLen){
-			msg += "黒ピヨの勝ち";
-		}
-		else if(blackLen < whiteLen){
-			msg += "白ピヨの勝ち";
-		}
-		else{
-			msg += "引き分けピヨ";
-		}
-    }
-    statusEl.textContent = msg;
+	let winnerText = "";
+	if (timeLeft <= 0) {
+	    winnerText = `タイムアウトで${(currentPlayer === 2 ? "黒ピヨ" : "白ピヨ")}の勝ち`;
+	} else {
+	    if (blackLen > whiteLen) {
+	        winnerText = "黒ピヨの勝ち";
+	    } else if (blackLen < whiteLen) {
+	        winnerText = "白ピヨの勝ち";
+	    } else {
+	        winnerText = "引き分けピヨ";
+	    }
+	}
+	winnerText = `<span style="color:red; font-weight:bold">${winnerText}</span>`;
+	statusEl.innerHTML = msg + "<br>" + winnerText;
     gameOver = true;
 };
 
@@ -165,7 +177,7 @@ const startTimer = () => {
     timeLeft = setTimer;
     timerEl.style.color = "black";
     timerEl.style.fontWeight = "normal";
-    timerEl.textContent = "残り時間：" + timeLeft + "秒";
+    timerEl.textContent = "残り：" + timeLeft + "秒";
 
     timerId = setInterval(() => {
         if (gameOver) {
@@ -173,7 +185,7 @@ const startTimer = () => {
             return;
         }
         timeLeft--;
-        timerEl.textContent = "残り時間：" + timeLeft + "秒";
+        timerEl.textContent = "残り：" + timeLeft + "秒";
         if (timeLeft <= 10) {
             timerEl.style.color = "red";
             timerEl.style.fontWeight = "bold";
@@ -183,7 +195,7 @@ const startTimer = () => {
             alert((currentPlayer === 1 ? "黒ピヨ" : "白ピヨ") + "の時間切れ！");
             winner();
         }
-    }, CPU_DELAY_MS);
+    }, 1000);
 };
 
 // ====== Board ======
@@ -208,21 +220,24 @@ const createBoard = () => {
         }
     }
     setStatus();
-    startTimer();
+    if(setTimer !== "noLimited"){
+		startTimer();
+	}
+    
 };
 
 // ====== Click ======
 const onCellClick = (e) => {
-    if (gameOver) {
+    if (gameOver || !playerTurnEnd) {
         return;
     }
     const x = Number(e.currentTarget.dataset.x);
     const y = Number(e.currentTarget.dataset.y);
-    
     //クリックされた座標(x,y)に石を置けるか.
     if (totalFlipsAt(y,x) === 0) {
         return;
     }
+    playerTurnEnd = false;
     applyMove(y,x);
     if(gameOver){
 		return;
@@ -232,15 +247,13 @@ const onCellClick = (e) => {
             winner();
             return;
         }
-        skipped = true;
-        alert((currentPlayer === 1 ? "黒ピヨ" : "白ピヨ") + "は置けないのでパスします");
-        console.log((currentPlayer === 1 ? "黒ピヨ" : "白ピヨ") + "は置けないのでパスします")
-        changePlayer();
-    } else {
+        skipProcess();
+    } 
+    else {
         skipped = false;
     }
-    if (!gameOver && mode === "only" && currentPlayer === 2) {
-        setTimeout(cpuMove, CPU_DELAY_MS);
+    if (!gameOver && mode==="cpuMode" && currentPlayer === 2) {
+		cpuMove();
     }
 };
 
@@ -280,13 +293,22 @@ const cpuMove = () => {
     let max  = -100;
     for (let y = 0; y < N; y++) {
         for (let x = 0; x < N; x++) {
-            if (cells[y][x] !== 0) {
-                continue;
-            }
             const flips = totalFlipsAt(y, x);
-            if(flips > 0 && (flips + POSITION_VALUE[y][x]) > max){
-                max = flips + POSITION_VALUE[y][x];
-                best = { y, x };
+            if(flips > 0){
+				//総裏返し数が最大値の位置
+				if(cpuLevel === "easy" && flips > max){
+	                max = flips;
+	                best = { y, x };
+				}
+				else if (cpuLevel === "normal" && (flips + POSITION_VALUE[y][x] * 0.5) > max) {
+				    max = flips + POSITION_VALUE[y][x] * 0.5;
+				    best = { y, x };
+				}
+				//総裏返し数と座標の重みの和
+				else if(cpuLevel === "hard" && (flips + POSITION_VALUE[y][x]) > max){
+	                max = flips + POSITION_VALUE[y][x];
+	                best = { y, x };
+				}
 			}
         }
     }
@@ -295,35 +317,70 @@ const cpuMove = () => {
             winner();
             return;
         }
-        skipped = true;
-        alert("白ピヨは置けないのでパスします");
-        changePlayer();
+        skipProcess();
         return;
     }
-    skipped = false;
-    applyMove(best.y, best.x);
-    if(gameOver === true){
-		return;
-	}
-    if (!hasAnyMove()) {
-        if (skipped) {
-            winner();
-            return;
-        }
-        skipped = true;
-        alert((currentPlayer === 1 ? "黒ピヨ" : "白ピヨ") + "は置けないのでパスします");
-        changePlayer();
-    }
+    //1秒後に実行
+    setTimeout(() => {
+		skipped = false;
+	    applyMove(best.y, best.x);
+	    if(gameOver === true){
+			return;
+		}
+	    if (!hasAnyMove()) {
+	        if (skipped) {
+	            winner();
+	            return;
+	        }
+	        skipProcess();
+	    }
+	}, 1000);
 };
+
+const skipProcess = () => {
+	skipped = true;
+    alert((currentPlayer === 1 ? "黒ピヨ" : "白ピヨ") + "は置けないのでパスします");
+    changePlayer();
+}
+
+const setCpuLevel = () => {
+    cpuLevel = cpuLevelEl.value;
+    let msgCpuLevel = "";
+    if(cpuLevel === "easy"){
+        msgCpuLevel = "簡単";
+    }
+    else if(cpuLevel === "normal"){
+        msgCpuLevel = "普通";
+    }
+    else {
+        msgCpuLevel = "難しい";
+    }
+    document.getElementById("gameSettings").textContent = `モード：CPUと対戦　　レベル：${msgCpuLevel}`;
+}
 
 // ====== Start ======
 startBtn.addEventListener("click", () => {
     mode = selectedMode.value;
-    if (!mode) {
-        alert("遊びたいモードを選択してね");
-        return;
-    }
+    if(mode === "cpuMode"){
+		setCpuLevel();
+	}
+	setTimer = document.getElementById("setTimer").value;
+	if (setTimer !== "noLimited") {
+		setTimer = Number(setTimer);
+	}
+	timeLeft = setTimer;
     startDiv.style.display = "none";
     resetState();
     createBoard();
 });
+
+selectedMode.addEventListener("change", () => {
+	if(selectedMode.value === "cpuMode"){
+		cpuLevelEl.disabled = false;
+		cpuLevel = cpuLevelEl.value;
+	}
+	else{
+		cpuLevelEl.disabled = true;
+	}
+})
+

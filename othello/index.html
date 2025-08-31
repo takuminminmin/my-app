@@ -11,14 +11,28 @@
 
   <div id="startDiv">
     <select id="selectedMode">
-      <option value="only" selected>CPと対戦</option>
-      <option value="battle">友達と対戦</option>
+      <option value="cpuMode" selected>CPUと対戦</option>
+      <option value="friendMode">友達と対戦</option>
     </select>
+    <div class="rowLayout">
+	    <select id="cpuLevel">
+			<option value="easy">簡単</option>
+			<option value="normal">普通</option>
+			<option value="hard">難しい</option>
+		</select>
+		<select id="setTimer">
+			<option value="30">30秒</option>
+			<option value="noLimited">制限なし</option>
+		</select>
+	</div>
     <button id="startBtn">スタート</button>
   </div>
-
-  <div id="status">黒ピヨの番です</div>
-  <div id="timer">残り時間：秒</div>
+  
+  <div id="gameSettings"></div>
+  <div class="rowLayout">
+	  <div id="status">黒ピヨの番</div>
+	  <div id="timer">残り：秒</div>
+  </div>
   <div id="board"></div>
 
   <script src="Othello_PiyoPiyo.js"></script>

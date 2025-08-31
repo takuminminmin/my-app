@@ -18,6 +18,14 @@ h1 {
   margin-bottom: 20px;
   gap: 10px;
 }
+.rowLayout {
+    display: flex;          /* 横並びにする */
+    flex-direction: row;    /* 明示的に横方向 */
+    align-items: center;    /* 縦方向を中央にそろえる */
+    gap: 10px;              /* 要素間の余白 */
+}
+
+
 select, button {
   font-size: 18px;
   padding: 10px 15px;
@@ -33,10 +41,11 @@ button:hover {
 #status, #timer {
   text-align: center;
   font-size: 20px;
-  margin: 10px 0;
+  margin: 10px 20px;
 }
-#timer {
-  margin-bottom: 20px;
+#gameSettings{
+	text-align: center;
+    font-size: 20px;
 }
 #board {
   display: grid;
@@ -66,4 +75,27 @@ button:hover {
 .white {
   background-image: url("png/front.png");
   background-size: cover;
+}
+
+/* ボタンが disabled のとき */
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+    background-color: #cccccc; /* グレーで無効感を出す */
+    color: #666666;            /* 文字色も薄くする */
+    border-color: #999999;
+    cursor: not-allowed;       /* ポインタを禁止マークに */
+    opacity: 0.7;              /* 少し透ける感じで無効感を強調 */
+}
+
+/* ボタンだけ別に強調したい場合 */
+button:disabled {
+    font-weight: bold;
+}
+
+/* チェックボックス・ラジオも少し透明に */
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+    opacity: 0.5;
 }

@@ -99,7 +99,7 @@ const createMember = (memberName) => {
 	        defaultExpenseEntryContainer();
         }
         if (memberArr.length < 2) {
-	        errMemberName.textContent = "メンバーを2人以上追加してください";
+	        errMemberName.textContent = "メンバーは2人以上にしてください";
 	        expenseEntryContainer.style.display = "none";
 	        recordsContainer.style.display = "none";
 	    }
@@ -340,7 +340,7 @@ const createAdjustmentTable = (arrExpenseRecords) => {
             selectedRecord = record;
             tr.classList.add("highlight");
             errRowBtn.textContent 
-            = "編集、削除以外の操作は「選択解除」ボタンを押してね";
+            = "編集、削除以外は「選択解除」を押してね";
         })
         table.appendChild(tr);
     })
