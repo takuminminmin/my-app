@@ -1,3 +1,38 @@
+// ============================
+// Firebase 初期化（CDN ESMを使う想定）
+// ============================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import {
+    getFirestore,
+    doc,
+    setDoc,
+    getDoc
+} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+// Firebase の設定（あなたのものに置き換え済み）
+const firebaseConfig = {
+    apiKey: "AIzaSyBUdGuVTpHhVWkTM8mH0yt_cMwDTnKR5Dg",
+    authDomain: "walicadb.firebaseapp.com",
+    projectId: "walicadb",
+    storageBucket: "walicadb.firebasestorage.app",
+    messagingSenderId: "450857734201",
+    appId: "1:450857734201:web:f54c9546a0c071b8833de8",
+    measurementId: "G-LFK3EGS0RG"
+};
+
+let db = null;
+try {
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    console.log("✅ Firebase initialized");
+} catch (e) {
+    console.warn("⚠ Firebase init failed or not available:", e);
+}
+
+// ============================
+// アプリ既存コード（保存処理修正版）
+// ============================
+
 let memberArr = [];
 let chargeSum = 0;
 let arrExpenseRecords = [];
@@ -24,17 +59,105 @@ const groupSetupContainer = document.getElementById("groupSetupContainer");
 const expenseEntryContainer = document.getElementById("expenseEntryContainer");
 const recordsContainer = document.getElementById("recordsContainer");
 
-//ロードされたときの処理.
-window.addEventListener("DOMContentLoaded", () => {
-    const dataObj = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+// ============================
+// Firestore 保存/読み込み関数
+// ============================
+/**
+ * Firestore に保存（非同期）。
+ * コレクション: walicaRecords
+ * ドキュメントID: groupName（なければ "defaultGroup"）
+ */
+const saveToFirestore = async (dataObj) => {
+    if (!db) {
+        // Firebase未初期化なら何もしない
+        return;
+    }
+    try {
+        const name = dataObj.groupName || "defaultGroup";
+        await setDoc(doc(db, "walicaRecords", name), dataObj);
+        console.log("💾 Firestoreへ保存成功:", name);
+    } catch (e) {
+        console.error("❌ Firestore保存エラー:", e);
+    }
+};
+
+/**
+ * Firestore から読み込み（groupNameを与える）
+ */
+const loadFromFirestore = async (group) => {
+    if (!db) {
+        return null;
+    }
+    try {
+        const docSnap = await getDoc(doc(db, "walicaRecords", group));
+        if (docSnap.exists()) {
+            console.log("📥 Firestoreから取得:", docSnap.data());
+            return docSnap.data();
+        } else {
+            console.log("⚠ Firestoreに該当データなし");
+            return null;
+        }
+    } catch (e) {
+        console.error("❌ Firestore読み込みエラー:", e);
+        return null;
+    }
+};
+
+// ============================
+// localStorage 同期ラッパー
+//  - 同期的に localStorage を更新
+//  - Firestore は可能なら非同期で追随保存する
+// ============================
+const persistToLocalAndCloud = (obj) => {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+    } catch (e) {
+        console.error("localStorage setItem failed:", e);
+    }
+    // Firestoreへは非同期で保存（グループ名があればその名前で）
+    // 失敗してもUIに影響を出さない
+    if (db && obj.groupName) {
+        saveToFirestore(obj);
+    }
+};
+
+// ============================
+// 既存の addData を修正：localStorage と Firestore に保存する
+// ============================
+const addData = (key, value) => {
+    const obj = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    obj[key] = value;
+    // localStorage に保存（同期）
+    persistToLocalAndCloud(obj);
+};
+
+// ============================
+// ロードされたときの処理.
+//  Firestoreのデータがあれば優先して読み込む（groupNameがlocalStorageにある場合）
+// ============================
+window.addEventListener("DOMContentLoaded", async () => {
+    const local = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    let dataObj = local;
+
+    // もし local に groupName があり、Firestoreが初期化されていれば
+    // Firestore側を優先して読み込む（共有データがあればそちらを使用）
+    if (local.groupName && db) {
+        const cloud = await loadFromFirestore(local.groupName);
+        if (cloud) {
+            dataObj = cloud;
+            // ローカルも上書きして同期させる
+            persistToLocalAndCloud(dataObj);
+        }
+    }
+
     if (Object.keys(dataObj).length !== 0) {
         groupName.value = dataObj["groupName"];
         groupDisabled();
-        dataObj["memberArr"].forEach(memberName => createMember(memberName));
+        (dataObj["memberArr"] || []).forEach(memberName => createMember(memberName));
         defaultExpenseEntryContainer();
         if ("resultDiv" in dataObj) {
             recordsContainer.style.display = "block";
-            arrExpenseRecords = dataObj["arrExpenseRecords"];
+            arrExpenseRecords = dataObj["arrExpenseRecords"] || [];
             createAdjustmentTable(arrExpenseRecords);
             adjustment.innerHTML = dataObj["resultDiv"];
             adjustment.scrollIntoView({
@@ -45,16 +168,15 @@ window.addEventListener("DOMContentLoaded", () => {
     // localStorage.removeItem(STORAGE_KEY);
 })
 
+// ============================
+// 以下は既存のイベントや関数（元コメントはそのまま）
+// ただし、データ更新を行う箇所で addData を確実に呼ぶよう修正済み
+// ============================
+
 deleteAll.addEventListener("click", () => {
     localStorage.removeItem(STORAGE_KEY);
     location.reload();
 })
-
-const addData = (key, value) => {
-    const obj = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-    obj[key] = value;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
-}
 
 const addMember = () => {
     errMemberName.textContent = "";
@@ -221,6 +343,8 @@ document.getElementById("registration").addEventListener("click", () => {
         arrExpenseRecords = arrExpenseRecords.filter(val => val !== selectedRecord);
     }
     createAdjustmentTable(arrExpenseRecords);
+    // 追加：配列更新後に必ず保存（localStorage + Firestore）
+    addData("arrExpenseRecords", arrExpenseRecords);
     recordsContainer.style.display = "block";
     createAdjustmentCalc();
     defaultExpenseEntryContainer();
@@ -308,6 +432,8 @@ const addExpenseRecords = (payer, checkedMember, purpose, charge) => {
         charge: Number(charge),
     }
     arrExpenseRecords.push(expenseRecords);
+    // 追加：保存をここに入れても安全（重複で保存されることはあるが問題ない）
+    addData("arrExpenseRecords", arrExpenseRecords);
 }
 
 /**
