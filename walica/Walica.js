@@ -42,7 +42,7 @@ window.addEventListener("DOMContentLoaded", () => {
             });
         }
     }
-//    localStorage.removeItem(STORAGE_KEY);
+    // localStorage.removeItem(STORAGE_KEY);
 })
 
 deleteAll.addEventListener("click", () => {
@@ -57,7 +57,7 @@ const addData = (key, value) => {
 }
 
 const addMember = () => {
-	errMemberName.textContent = "";
+    errMemberName.textContent = "";
     const memberName = document.getElementById("memberName").value.trim();
     if (!memberName) {
         errMemberName.textContent = "メンバー名を入力してください";
@@ -69,13 +69,13 @@ const addMember = () => {
     }
     createMember(memberName);
     document.getElementById("memberName").value = "";
-    if(createGroupBtn.disabled && memberArr.length >= 2){
-		addData("memberArr", memberArr);
-    	defaultExpenseEntryContainer();
-    	if(arrExpenseRecords.length !== 0){
-			recordsContainer.style.display = "block";
-		}
-	}
+    if (createGroupBtn.disabled && memberArr.length >= 2) {
+        addData("memberArr", memberArr);
+        defaultExpenseEntryContainer();
+        if (arrExpenseRecords.length !== 0) {
+            recordsContainer.style.display = "block";
+        }
+    }
 }
 
 const createMember = (memberName) => {
@@ -94,15 +94,15 @@ const createMember = (memberName) => {
     removeBtn.addEventListener('click', () => {
         memberDiv.remove();
         memberArr = memberArr.filter(val => val !== memberName);
-        if(createGroupBtn.disabled){
-	        addData("memberArr", memberArr);
-	        defaultExpenseEntryContainer();
+        if (createGroupBtn.disabled) {
+            addData("memberArr", memberArr);
+            defaultExpenseEntryContainer();
         }
         if (memberArr.length < 2) {
-	        errMemberName.textContent = "メンバーは2人以上にしてください";
-	        expenseEntryContainer.style.display = "none";
-	        recordsContainer.style.display = "none";
-	    }
+            errMemberName.textContent = "メンバーは2人以上にしてください";
+            expenseEntryContainer.style.display = "none";
+            recordsContainer.style.display = "none";
+        }
     });
     // 要素をまとめる
     memberDiv.appendChild(nameSpan);
@@ -140,7 +140,7 @@ createGroupBtn.addEventListener("click", () => {
     addData("groupName", groupNameVal);
     addData("memberArr", memberArr);
     groupDisabled();
-    defaultExpenseEntryContainer(); 
+    defaultExpenseEntryContainer();
     select.scrollIntoView({
         behavior: "smooth",
     });
@@ -156,7 +156,7 @@ const groupDisabled = () => {
  * expenseEntryContainerのデフォルト表示.
  */
 const defaultExpenseEntryContainer = () => {
-	mode.textContent = "新規作成";
+    mode.textContent = "新規作成";
     expenseEntryContainer.style.display = "block";
     //初期化.
     ["purpose", "charge"].forEach(eleName => document.getElementById(eleName).value = "");
@@ -170,22 +170,22 @@ const defaultExpenseEntryContainer = () => {
     })
     //チェックボックスの作成.
     memberArr.forEach(val => {
-	    const label = document.createElement("label");
-	    label.style.marginRight = "10px";   // 横スペース
-	    label.style.display = "inline-flex"; // 横並び
-	    label.style.alignItems = "center";   // チェックボックスと文字を縦中央揃え
-	    label.style.cursor = "pointer";      // クリック可能感
-	    const checkbox = document.createElement("input");
-	    checkbox.type = "checkbox";
-	    checkbox.name = "receive";
-	    checkbox.value = val;
-	    checkbox.checked = true;
-	    // label に checkbox とテキストをまとめる
-	    label.appendChild(checkbox);
-	    label.appendChild(document.createTextNode(val));
-	    // #receive に追加
-	    receive.appendChild(label);
-	});
+        const label = document.createElement("label");
+        label.style.marginRight = "10px";   // 横スペース
+        label.style.display = "inline-flex"; // 横並び
+        label.style.alignItems = "center";   // チェックボックスと文字を縦中央揃え
+        label.style.cursor = "pointer";      // クリック可能感
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.name = "receive";
+        checkbox.value = val;
+        checkbox.checked = true;
+        // label に checkbox とテキストをまとめる
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(val));
+        // #receive に追加
+        receive.appendChild(label);
+    });
 }
 
 /**
@@ -217,9 +217,9 @@ document.getElementById("registration").addEventListener("click", () => {
     }
     addExpenseRecords(payer, checkedMember, purposeVal, chargeVal);
     //編集の場合、編集元のデータを削除.
-    if(selectedRecord){
-		arrExpenseRecords = arrExpenseRecords.filter(val => val !== selectedRecord);
-	}
+    if (selectedRecord) {
+        arrExpenseRecords = arrExpenseRecords.filter(val => val !== selectedRecord);
+    }
     createAdjustmentTable(arrExpenseRecords);
     recordsContainer.style.display = "block";
     createAdjustmentCalc();
@@ -230,13 +230,13 @@ document.getElementById("registration").addEventListener("click", () => {
  * キャンセルボタン押下時
  */
 document.getElementById("cancelBtn").addEventListener("click", () => {
-	selectedRecord = null;
-	defaultExpenseEntryContainer();
+    selectedRecord = null;
+    defaultExpenseEntryContainer();
 })
 
 const createAdjustmentCalc = () => {
-	memberArr.forEach(member => calculationCharge(member));
-	//誰が誰にいくら払うかの計算
+    memberArr.forEach(member => calculationCharge(member));
+    //誰が誰にいくら払うかの計算
     const settlements = [];
     // 過不足を分けて配列に
     const plusList = [];
@@ -266,8 +266,8 @@ const createAdjustmentCalc = () => {
     }
     chargeSum = 0;
     arrExpenseRecords.forEach(record => {
-		chargeSum += record["charge"];
-	})
+        chargeSum += record["charge"];
+    })
     //精算案の表示.
     adjustment.innerHTML = "";
     const resultDiv = document.createElement("div");
@@ -317,12 +317,12 @@ const createAdjustmentTable = (arrExpenseRecords) => {
     containerTable.innerHTML = "";
     const table = document.createElement("table");
     const trHeader = document.createElement("tr");
-	["立て替えた物", "立て替えた人", "対象メンバ", "金額(円)"].forEach(val => {
-	    const th = document.createElement("th");
-	    th.textContent = val;
-	    trHeader.appendChild(th);
-	});
-	table.appendChild(trHeader);
+    ["立て替えた物", "立て替えた人", "対象メンバ", "金額(円)"].forEach(val => {
+        const th = document.createElement("th");
+        th.textContent = val;
+        trHeader.appendChild(th);
+    });
+    table.appendChild(trHeader);
     arrExpenseRecords.forEach(record => {
         const tr = document.createElement("tr");
         ["purpose", "payer", "checkedMember", "charge"].forEach(val => {
@@ -330,17 +330,17 @@ const createAdjustmentTable = (arrExpenseRecords) => {
             td.textContent = record[val];
             //金額は右寄せで表示.
             if (val === "charge") {
-		        td.style.textAlign = "right";
-		    }
+                td.style.textAlign = "right";
+            }
             tr.appendChild(td);
         })
         tr.addEventListener("click", () => {
             table.querySelectorAll("tr").forEach(r => r.classList.remove("highlight"));
-            setEditButtonsAndContainers(false,"none");
+            setEditButtonsAndContainers(false, "none");
             selectedRecord = record;
             tr.classList.add("highlight");
-            errRowBtn.textContent 
-            = "編集、削除以外は「選択解除」を押してね";
+            errRowBtn.textContent
+                = "編集、削除以外は「選択解除」を押してね";
         })
         table.appendChild(tr);
     })
@@ -360,9 +360,9 @@ const setEditButtonsAndContainers = (disableButtons, containerDisplay) => {
  * 編集ボタン押下時の処理
  */
 editRowBtn.addEventListener("click", () => {
-	mode.textContent = "編集中";
-	errRowBtn.textContent = "";
-	setEditButtonsAndContainers(true,"block");
+    mode.textContent = "編集中";
+    errRowBtn.textContent = "";
+    setEditButtonsAndContainers(true, "block");
     containerTable.querySelectorAll("tr").forEach(r => r.classList.remove("highlight"));
     //プルダウンリストの選択を変更.
     const opt = select.options;
@@ -394,18 +394,18 @@ editRowBtn.addEventListener("click", () => {
  * 削除ボタン押下時の処理
  */
 deleteRowBtn.addEventListener("click", () => {
-	errRowBtn.textContent = "";
-	setEditButtonsAndContainers(true,"block");
+    errRowBtn.textContent = "";
+    setEditButtonsAndContainers(true, "block");
     document.getElementById("containerTable").querySelector(".highlight").remove();
     arrExpenseRecords = arrExpenseRecords.filter(val => val !== selectedRecord);
     addData("arrExpenseRecords", arrExpenseRecords);
     createAdjustmentCalc();
-    if(arrExpenseRecords.length === 0){
-		recordsContainer.style.display = "none";
-		select.scrollIntoView({
-	        behavior: "smooth",
-	    });
-	}
+    if (arrExpenseRecords.length === 0) {
+        recordsContainer.style.display = "none";
+        select.scrollIntoView({
+            behavior: "smooth",
+        });
+    }
 })
 
 /**
@@ -414,7 +414,7 @@ deleteRowBtn.addEventListener("click", () => {
 document.getElementById("quitEdit").addEventListener("click", () => {
     containerTable.querySelectorAll("tr").forEach(r => r.classList.remove("highlight"));
     selectedRecord = null;
-    setEditButtonsAndContainers(true,"block");
+    setEditButtonsAndContainers(true, "block");
     adjustment.scrollIntoView({
         behavior: "auto",
     });
