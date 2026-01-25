@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Walica - 割り勘システム</title>
+    <link rel="stylesheet" href="Walica.css">
+</head>
+<body>
+    <div class="container" id="groupSetupContainer">
+        <h1>Walica</h1>
+        <div class="form-group">
+            <label for="groupName">グループ名</label>
+            <input type="text" id="groupName" placeholder="グループ名を入力">
+            <span id="errGroupName" class="error"></span>
+        </div>
+        <div class="form-group">
+            <label for="memberName">メンバー名</label>
+            <input type="text" id="memberName" placeholder="メンバー名を入力">
+            <span id="errMemberName" class="error"></span>
+            <button id="addMemberBtn" class="main-btn">追加</button>
+        </div>
+        <div id="memberList"></div>
+        <button id="createGroupBtn" class="main-btn">グループ作成</button>
+        <button id="deleteAll" class="main-btn" style="display:none">全てのデータ初期化</button>
+    </div>
+
+    <div class="container" id="expenseEntryContainer" style="display:none;">
+		<h2 id="mode" style="text-align: center;">新規作成</h2>
+        <label for="payer">立て替えた人</label>
+        <select id="payer"></select><br>
+        <label for="receive">対象メンバ</label>
+        <span id="receive"></span>
+        <span id="errReceive" class="error"></span>
+        <div class="form-group">
+	        <label for="purpose">立て替えた物</label>
+	        <input type="text" id="purpose" placeholder="立て替えた物を入力"><br>
+	        <span id="errPurpose" class="error"></span>
+        </div>
+        <div class="form-group">
+	        <label for="charge">金額</label>
+	        <input type="number" id="charge" placeholder="金額を入力">  円<br>
+	        <span id="errCharge" class="error"></span>
+	    </div>
+        <button id="registration" class="main-btn">登録</button>
+        <button id="cancelBtn" class="main-btn">キャンセル</button>
+    </div>
+
+    <div class="container" id="recordsContainer" style="display:none;">
+        <span id="containerTable"></span>
+        <span id="errRowBtn" class="error"></span>
+        <div class="button-container">
+            <button id="editRowBtn" class="sub-btn" disabled>編集</button>
+            <button id="deleteRowBtn" class="sub-btn" disabled>削除</button>
+            <button id="quitEdit" class="sub-btn" disabled>選択解除</button>
+        </div>
+        <div id="adjustment"></div>
+    </div>
+
+    <script type="module" src="Walica.js"></script>
+</body>
+</html>
