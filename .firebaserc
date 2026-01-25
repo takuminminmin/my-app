@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "walicadb"
+  },
+  "targets": {
+    "walicadb": {
+      "hosting": {
+        "walica": [
+          "walicadb"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
