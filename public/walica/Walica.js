@@ -1,30 +1,11 @@
-//1月25日に更新したよ.
-
-// ============================
-// Walica.js 完全版（メール認証版 修正版）
-// ============================
-
-// ============================
-// グローバル変数
-// ============================
-window.memberArr = [];
-window.arrExpenseRecords = [];
-window.chargeAdjustmentObj = {};
-window.selectedRecord = null;
-window.keepAutoInput = false;
-window.chargeSum = 0;
-
-let currentUser = null;
-let db = null;
-let currentNickname = null;
-const STORAGE_KEY = "records";
-
-// ============================
-// Firebase 初期化
-// ============================
+// Firebase プロジェクトを決定
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+// Firestore を使うための関数群（DB インスタンス取得・参照・読み書き）
+import {
+  getFirestore,
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBUdGuVTpHhVWkTM8mH0yt_cMwDTnKR5Dg",
@@ -33,440 +14,428 @@ const firebaseConfig = {
   storageBucket: "walicadb.firebasestorage.app",
   messagingSenderId: "450857734201",
   appId: "1:450857734201:web:f54c9546a0c071b8833de8",
-  measurementId: "G-LFK3EGS0RG"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ============================
+// groupId を URL から取得
+// ============================
+const params = new URLSearchParams(window.location.search);
+const groupId = params.get("group");
+if (!groupId) {
+  alert("グループURLが不正です");
+  throw new Error("groupId not found");
+}
+
+let memberArr = [];
+let chargeSum = 0;
+let arrExpenseRecords = [];
+const chargeAdjustmentObj = {};
+let selectedRecord = null;
+
+const createGroupBtn = document.getElementById("createGroupBtn");
+const groupName = document.getElementById("groupName");
+const errMemberName = document.getElementById("errMemberName");
+const mode = document.getElementById("mode");
+const select = document.getElementById("payer");
+const receive = document.getElementById("receive");
+const purpose = document.getElementById("purpose");
+const charge = document.getElementById("charge");
+const editRowBtn = document.getElementById("editRowBtn");
+const deleteRowBtn = document.getElementById("deleteRowBtn");
+const containerTable = document.getElementById("containerTable");
+const adjustment = document.getElementById("adjustment");
+const errRowBtn = document.getElementById("errRowBtn");
+const deleteAll = document.getElementById("deleteAll");
+const groupSetupContainer = document.getElementById("groupSetupContainer");
+const expenseEntryContainer = document.getElementById("expenseEntryContainer");
+const recordsContainer = document.getElementById("recordsContainer");
+
+// ============================
+// Firestore: グループ取得（読むだけ）
+// ============================
+const loadGroupFromFirestore = async (groupId) => {
+  if (!db) return null;
+  const groupRef = doc(db, "walicaGroups", groupId);
+  const snap = await getDoc(groupRef);
+  if (!snap.exists()) {
+    return null;
+  }
+  return snap.data();
 };
 
-const app = initializeApp(firebaseConfig);
-db = getFirestore(app);
-const auth = getAuth(app);
+window.addEventListener("DOMContentLoaded", async () => {
+  const groupData = await loadGroupFromFirestore(groupId);
+  if (groupData) {
+    groupName.value = groupData.groupName;
+    console.log("groupData:"+groupName.value);
+    memberArr = [...groupData.members];
+    memberArr.forEach(name => createMember(name, true));
+  }
+});
 
-// ============================
-// DOM 要素取得
-// ============================
-document.addEventListener("DOMContentLoaded", () => {
-    const groupName = document.getElementById("groupName");
-    const memberNameInput = document.getElementById("memberName");
-    const createGroupBtn = document.getElementById("createGroupBtn");
-    const deleteAll = document.getElementById("deleteAll");
-    const memberList = document.getElementById("memberList");
+deleteAll.addEventListener("click", () => {
+    location.reload();
+})
 
-    const expenseEntryContainer = document.getElementById("expenseEntryContainer");
-    const mode = document.getElementById("mode");
-    const select = document.getElementById("payer");
-    const receive = document.getElementById("receive");
-    const purpose = document.getElementById("purpose");
-    const charge = document.getElementById("charge");
-
-    const recordsContainer = document.getElementById("recordsContainer");
-    const containerTable = document.getElementById("containerTable");
-    const errRowBtn = document.getElementById("errRowBtn");
-    const editRowBtn = document.getElementById("editRowBtn");
-    const deleteRowBtn = document.getElementById("deleteRowBtn");
-    const quitEdit = document.getElementById("quitEdit");
-    const adjustment = document.getElementById("adjustment");
-    const groupSetupContainer = document.getElementById("groupSetupContainer");
-
-    // ============================
-    // メール認証ログイン処理
-    // ============================
-    const loginWithEmail = async () => {
-        let email = "", password = "";
-        while (!email) email = prompt("メールアドレスを入力してください")?.trim() || "";
-        while (!password) password = prompt("パスワードを入力してください")?.trim() || "";
-
-        try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            currentUser = userCredential.user;
-            console.log("🟢 ログイン成功:", currentUser.uid);
-        } catch (err) {
-            if (err.code === "auth/user-not-found") {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                currentUser = userCredential.user;
-                console.log("🟢 新規ユーザー作成:", currentUser.uid);
-            } else {
-                console.error("❌ ログイン失敗", err);
-                alert("ログインに失敗しました: " + err.message);
-                return;
-            }
+const addMember = () => {
+    errMemberName.textContent = "";
+    const memberName = document.getElementById("memberName").value.trim();
+    if (!memberName) {
+        errMemberName.textContent = "メンバー名を入力してください";
+        return;
+    }
+    if (memberArr.includes(memberName)) {
+        errMemberName.textContent = "同じ名前がすでに登録されています";
+        return;
+    }
+    createMember(memberName);
+    document.getElementById("memberName").value = "";
+    if (createGroupBtn.disabled && memberArr.length >= 2) {
+        defaultExpenseEntryContainer();
+        if (arrExpenseRecords.length !== 0) {
+            recordsContainer.style.display = "block";
         }
-    };
+    }
+}
 
-    // ============================
-    // 認証状態変更監視
-    // ============================
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            currentUser = user;
-            console.log("🟢 ログインユーザーID:", user.uid);
-            await initNickname();
-            await initAfterAuth();
-        } else {
-            currentUser = null;
-            console.log("🔴 未ログイン状態");
-            await loginWithEmail(); // 未ログイン時はログインを促す
-        }
-    });
-
-    // ============================
-    // ニックネーム初期化
-    // ============================
-    const initNickname = async () => {
-        if (!db || !currentUser) return;
-        const uid = currentUser.uid;
-        const userRef = doc(db, "walica_users", uid);
-        const snap = await getDoc(userRef);
-
-        if (snap.exists()) {
-            currentNickname = snap.data().name || "名無し";
-        } else {
-            let name = "";
-            while (!name) name = prompt("はじめての利用です。ニックネームを入力してください")?.trim() || "";
-            await setDoc(userRef, { name, deviceId: uid, joinedGroups: [] });
-            currentNickname = name;
-        }
-    };
-    
-    // ============================
-    // Firestore 関連関数
-    // ============================
-    const loadGroupFromFirestore = async (groupNameVal) => {
-        if (!db || !currentUser) return null;
-        try {
-            const docRef = doc(db, "walicaGroups", groupNameVal);
-            const snap = await getDoc(docRef);
-            return snap.exists() ? snap.data() : null;
-        } catch (e) {
-            console.error("❌ Firestore グループ取得エラー:", e);
-            return null;
-        }
-    };
-
-    const loadRecordsFromFirestore = async (groupNameVal) => {
-        if (!db || !currentUser) return [];
-        try {
-            const recordsCol = collection(db, "walicaGroups", groupNameVal, "records");
-            const snapshot = await getDocs(recordsCol);
-            const records = [];
-            snapshot.forEach(doc => records.push({ id: doc.id, ...doc.data() }));
-            return records;
-        } catch (e) {
-            console.error("❌ Firestore records 取得エラー:", e);
-            return [];
-        }
-    };
-
-    const addRecordToFirestore = async (groupNameVal, record) => {
-        if (!db || !currentUser) return;
-        try {
-            const recordsCol = collection(db, "walicaGroups", groupNameVal, "records");
-            await addDoc(recordsCol, {
-                ...record,
-                updatedAt: serverTimestamp(),
-                updatedUser: currentUser.uid
-            });
-        } catch (e) {
-            console.error("❌ Firestore record 追加エラー:", e);
-        }
-    };
-
-    const loadAutoInputFromFirestore = async () => {
-        if (!db || !currentUser) return null;
-        try {
-            const snap = await getDoc(doc(db, "walicaAutoInput", currentUser.uid));
-            return snap.exists() ? snap.data() : null;
-        } catch (e) {
-            console.error("❌ Firestore AutoInput 取得エラー:", e);
-            return null;
-        }
-    };
-
-    const clearAutoInputInFirestore = async () => {
-        if (!db || !currentUser) return;
-        try {
-            await setDoc(doc(db, "walicaAutoInput", currentUser.uid), {
-                storeName: "",
-                amount: 0,
-                updatedAt: serverTimestamp()
-            });
-        } catch (e) {
-            console.error("❌ Firestore AutoInput クリアエラー:", e);
-        }
-    };
-
-    // ============================
-    // ページ初期化
-    // ============================
-    const initAfterAuth = async () => {
-        const local = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-        let dataObj = local;
-
-        if (local.groupName && db) {
-            const cloud = await loadGroupFromFirestore(local.groupName);
-            if (cloud) {
-                dataObj = cloud;
-                persistToLocalAndCloud(dataObj);
-            }
-        }
-
-        if (Object.keys(dataObj).length !== 0) {
-            groupName.value = dataObj.groupName;
-            groupDisabled();
-            memberArr = dataObj.memberArr || [];
-            memberArr.forEach(createMember);
+const createMember = (memberName, skipPush = false) => {
+	if (!skipPush) {
+        memberArr.push(memberName);
+    }
+    // メンバー要素の作成
+    const memberDiv = document.createElement('div');
+    memberDiv.className = 'member';
+    // 名前表示用のspan
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = memberName;
+    // 削除ボタン
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = '×';
+    removeBtn.className = 'remove-btn';
+    // 削除イベント
+    removeBtn.addEventListener('click', () => {
+        memberDiv.remove();
+        memberArr = memberArr.filter(val => val !== memberName);
+        if (createGroupBtn.disabled) {
             defaultExpenseEntryContainer();
-            if (dataObj.arrExpenseRecords) {
-                arrExpenseRecords = dataObj.arrExpenseRecords;
-                createAdjustmentTable(arrExpenseRecords);
-                createAdjustmentCalc();
-            }
-        }
-
-        const autoData = await loadAutoInputFromFirestore();
-        if (autoData && Number(autoData.amount) > 0) {
-            keepAutoInput = true;
-            purpose.value = autoData.storeName;
-            charge.value = autoData.amount;
-        }
-    };
-
-    // ============================
-    // localStorage + Firestore 同期関数
-    // ============================
-    const persistToLocalAndCloud = (obj) => {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); } catch(e){ console.error(e); }
-        if (db && obj.groupName) saveGroupToFirestore(obj);
-    };
-
-    const saveGroupToFirestore = async (obj) => {
-        try {
-            const dataToSave = {
-                groupName: obj.groupName,
-                memberArr: obj.memberArr || [],
-                arrExpenseRecords: obj.arrExpenseRecords || [],
-            };
-            await setDoc(doc(db, "walicaGroups", obj.groupName), dataToSave);
-            console.log("✅ Firestore グループ保存成功:", obj.groupName);
-        } catch (e) {
-            console.error("❌ Firestore グループ保存エラー:", e);
-        }
-    };
-
-    // ============================
-    // DOM イベント
-    // ============================
-    deleteAll.addEventListener("click", () => {
-        localStorage.removeItem(STORAGE_KEY);
-        location.reload();
-    });
-
-    document.getElementById("addMemberBtn").addEventListener("click", addMember);
-    memberNameInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") addMember();
-    });
-
-    createGroupBtn.addEventListener("click", () => {
-        document.querySelectorAll(".error").forEach(val => val.innerHTML = "");
-        const groupNameVal = groupName.value.trim();
-        let hasErr = false;
-        if (!groupNameVal) {
-            document.getElementById("errGroupName").textContent = "グループ名を入力してください";
-            hasErr = true;
         }
         if (memberArr.length < 2) {
-            document.getElementById("errMemberName").textContent = "メンバーを2人以上追加してください";
-            hasErr = true;
+            errMemberName.textContent = "メンバーは2人以上にしてください";
+            expenseEntryContainer.style.display = "none";
+            recordsContainer.style.display = "none";
         }
-        if (hasErr) return;
-
-        addData("groupName", groupNameVal);
-        addData("memberArr", memberArr);
-        groupDisabled();
-        defaultExpenseEntryContainer();
-        select.scrollIntoView({ behavior: "smooth" });
     });
+    // 要素をまとめる
+    memberDiv.appendChild(nameSpan);
+    memberDiv.appendChild(removeBtn);
+    document.getElementById('memberList').appendChild(memberDiv);
+}
 
-    window.groupDisabled = () => {
-        groupName.disabled = true;
-        createGroupBtn.disabled = true;
-        deleteAll.style.display = "block";
-    };
+document.getElementById("addMemberBtn").addEventListener("click", addMember);
 
-    // ============================
-    // メンバー追加/削除
-    // ============================
-    function addMember() {
-        const memberName = memberNameInput.value.trim();
-        const errMemberName = document.getElementById("errMemberName");
-        errMemberName.textContent = "";
-        if (!memberName) { errMemberName.textContent = "メンバー名を入力してください"; return; }
-        if (memberArr.includes(memberName)) { errMemberName.textContent = "同じ名前がすでに登録されています"; return; }
-        createMember(memberName);
-        memberNameInput.value = "";
-        if (createGroupBtn.disabled && memberArr.length >= 2) {
-            addData("memberArr", memberArr);
-            defaultExpenseEntryContainer();
-            if (arrExpenseRecords.length !== 0) recordsContainer.style.display = "block";
-        }
+document.getElementById("memberName").addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") {
+        return;
     }
+    addMember();
+})
 
-    function createMember(memberName) {
-        memberArr.push(memberName);
-        const memberDiv = document.createElement('div');
-        memberDiv.className = 'member';
-        const nameSpan = document.createElement('span');
-        nameSpan.textContent = memberName;
-
-        const removeBtn = document.createElement('button');
-        removeBtn.textContent = '×';
-        removeBtn.className = 'remove-btn';
-        removeBtn.addEventListener('click', () => {
-            memberDiv.remove();
-            memberArr = memberArr.filter(val => val !== memberName);
-            if (createGroupBtn.disabled) {
-                addData("memberArr", memberArr);
-                defaultExpenseEntryContainer();
-            }
-            if (memberArr.length < 2) {
-                document.getElementById("errMemberName").textContent = "メンバーは2人以上にしてください";
-                expenseEntryContainer.style.display = "none";
-                recordsContainer.style.display = "none";
-            }
-        });
-
-        memberDiv.appendChild(nameSpan);
-        memberDiv.appendChild(removeBtn);
-        memberList.appendChild(memberDiv);
+/**
+ * 「グループ作成」ボタン押下時の処理
+ */
+createGroupBtn.addEventListener("click", () => {
+    document.querySelectorAll(".error").forEach(val => val.innerHTML = "");
+    const groupNameVal = groupName.value.trim();
+    let hasErr = false;
+    if (!groupNameVal) {
+        document.getElementById("errGroupName").textContent = "グループ名を入力してください";
+        hasErr = true;
     }
-
-    // ============================
-    // defaultExpenseEntryContainer 定義
-    // ============================
-    function defaultExpenseEntryContainer() {
-        expenseEntryContainer.style.display = memberArr.length >= 2 ? "block" : "none";
-
-        select.innerHTML = "";
-        memberArr.forEach(member => {
-            const option = document.createElement("option");
-            option.value = member;
-            option.textContent = member;
-            select.appendChild(option);
-        });
-
-        receive.innerHTML = "";
-        memberArr.forEach(member => {
-            const label = document.createElement("label");
-            label.style.marginRight = "10px";
-            const checkbox = document.createElement("input");
-            checkbox.type = "checkbox";
-            checkbox.name = "receive";
-            checkbox.value = member;
-            label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(member));
-            receive.appendChild(label);
-        });
-
-        mode.textContent = "登録モード";
+    if (memberArr.length < 2) {
+        errMemberName.textContent = "メンバーを2人以上追加してください";
+        hasErr = true;
     }
-
-    // ============================
-    // Expense 登録
-    // ============================
-    document.getElementById("registration").addEventListener("click", async () => {
-        const payer = select.value;
-        const checkboxes = document.querySelectorAll('input[name="receive"]:checked');
-        const checkedMember = Array.from(checkboxes).map(cb => cb.value);
-        let hasErr = false;
-
-        document.querySelectorAll(".error").forEach(val => val.innerHTML = "");
-
-        const chargeVal = Number(charge.value);
-
-        if (!purpose.value.trim()) { document.getElementById("errPurpose").textContent = "支払い名を入力してください"; hasErr = true; }
-        if (isNaN(chargeVal) || chargeVal < 1) { document.getElementById("errCharge").textContent = "金額は1円以上を入力してください"; hasErr = true; }
-        if (checkboxes.length === 0) { document.getElementById("errReceive").textContent = "立替え対象のメンバーを1人以上選択してください"; hasErr = true; }
-        if (hasErr) return;
-
-        const newRecord = {
-            purpose: purpose.value.trim(),
-            payer,
-            checkedMember,
-            charge: chargeVal
-        };
-
-        arrExpenseRecords.push(newRecord);
-        await addRecordToFirestore(groupName.value, newRecord);
-        await renderFirestoreList();
-
-        if (selectedRecord && selectedRecord.id) {
-            arrExpenseRecords = arrExpenseRecords.filter(val => val.id !== selectedRecord.id);
-        }
-
-        createAdjustmentTable(arrExpenseRecords);
-        addData("arrExpenseRecords", arrExpenseRecords);
-        recordsContainer.style.display = "block";
-        createAdjustmentCalc();
-        defaultExpenseEntryContainer();
-        try { await clearAutoInputInFirestore(); } catch(e) { console.error("自動入力クリア失敗"); }
+    if (hasErr) {
+        return;
+    }
+    groupDisabled();
+    defaultExpenseEntryContainer();
+    select.scrollIntoView({
+        behavior: "smooth",
     });
+})
 
-    // ============================
-    // renderFirestoreList 定義
-    // ============================
-    const renderFirestoreList = async () => {
-        if (!db || !currentUser) return;
-        try {
-            const records = await loadRecordsFromFirestore(groupName.value);
-            arrExpenseRecords = records.map(r => ({
-                id: r.id,
-                purpose: r.purpose,
-                payer: r.payer,
-                checkedMember: r.checkedMember || [],
-                charge: Number(r.charge)
-            }));
-            createAdjustmentTable(arrExpenseRecords);
-            createAdjustmentCalc();
-        } catch (e) { console.error("❌ renderFirestoreList エラー:", e); }
-    };
+const groupDisabled = () => {
+    groupName.disabled = true;
+    createGroupBtn.disabled = true;
+    deleteAll.style.display = "block";
+}
 
-    // ============================
-    // 精算計算
-    // ============================
-    const createAdjustmentCalc = () => {
-        for (const key in chargeAdjustmentObj) delete chargeAdjustmentObj[key];
+/**
+ * expenseEntryContainerのデフォルト表示.
+ */
+const defaultExpenseEntryContainer = () => {
+    mode.textContent = "新規作成";
+    expenseEntryContainer.style.display = "block";
+    //初期化.
+    ["purpose", "charge"].forEach(eleName => document.getElementById(eleName).value = "");
+    ["payer", "receive"].forEach(eleName => document.getElementById(eleName).innerHTML = "");
+    //プルダウンリストの作成.
+    memberArr.forEach(val => {
+        const option = document.createElement("option");
+        option.textContent = val;
+        option.value = val;
+        select.appendChild(option);
+    })
+    //チェックボックスの作成.
+    memberArr.forEach(val => {
+        const label = document.createElement("label");
+        label.style.marginRight = "10px";   // 横スペース
+        label.style.display = "inline-flex"; // 横並び
+        label.style.alignItems = "center";   // チェックボックスと文字を縦中央揃え
+        label.style.cursor = "pointer";      // クリック可能感
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.name = "receive";
+        checkbox.value = val;
+        checkbox.checked = true;
+        // label に checkbox とテキストをまとめる
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(val));
+        // #receive に追加
+        receive.appendChild(label);
+    });
+}
 
-        memberArr.forEach(member => calculationCharge(member));
+/**
+ * 登録ボタン押下時の処理
+ */
+document.getElementById("registration").addEventListener("click", () => {
+    let hasErr = false;
+    document.querySelectorAll(".error").forEach(val => val.innerHTML = "");
+    const payer = document.getElementById("payer").value;
+    const checkboxes = document.querySelectorAll('input[name="receive"]:checked');
+    if (checkboxes.length === 0) {
+        document.getElementById("errReceive").textContent = "立替え対象のメンバーを1人以上選択してください";
+        hasErr = true;
+    }
+    const checkedMember = Array.from(checkboxes).map(cb => cb.value);
 
-        const plusList = [], minusList = [];
-        for (const member in chargeAdjustmentObj) {
-            const amount = chargeAdjustmentObj[member];
-            if (amount > 0) plusList.push({ name: member, amount });
-            else if (amount < 0) minusList.push({ name: member, amount: -amount });
+    const purposeVal = purpose.value.trim();
+    if (!purposeVal) {
+        document.getElementById("errPurpose").textContent = "支払い名を入力してください";
+        hasErr = true;
+    }
+    const chargeVal = charge.value;
+    if (chargeVal < 1) {
+        document.getElementById("errCharge").textContent = "金額は1円以上を入力してください";
+        hasErr = true;
+    }
+    if (hasErr) {
+        return;
+    }
+    addExpenseRecords(payer, checkedMember, purposeVal, chargeVal);
+    //編集の場合、編集元のデータを削除.
+    if (selectedRecord) {
+        arrExpenseRecords = arrExpenseRecords.filter(val => val !== selectedRecord);
+    }
+    createAdjustmentTable(arrExpenseRecords);
+    // 追加：配列更新後に必ず保存（localStorage + Firestore）
+    recordsContainer.style.display = "block";
+    createAdjustmentCalc();
+    defaultExpenseEntryContainer();
+})
+
+/**
+ * キャンセルボタン押下時
+ */
+document.getElementById("cancelBtn").addEventListener("click", () => {
+    selectedRecord = null;
+    defaultExpenseEntryContainer();
+})
+
+const createAdjustmentCalc = () => {
+    memberArr.forEach(member => calculationCharge(member));
+    //誰が誰にいくら払うかの計算
+    const settlements = [];
+    // 過不足を分けて配列に
+    const plusList = [];
+    const minusList = [];
+    for (const member in chargeAdjustmentObj) {
+        const amount = chargeAdjustmentObj[member];
+        if (amount > 0) {
+            plusList.push({ name: member, amount: amount });
+        } else if (amount < 0) {
+            minusList.push({ name: member, amount: -amount }); // 正の値に変換
         }
-
-        const settlements = [];
-        while (plusList.length && minusList.length) {
-            const payer = minusList[0], receiver = plusList[0];
-            const amount = Math.min(payer.amount, receiver.amount);
-            settlements.push(`${payer.name} → ${receiver.name}：${amount.toFixed(0)} 円`);
-            payer.amount -= amount;
-            receiver.amount -= amount;
-            if (payer.amount === 0) minusList.shift();
-            if (receiver.amount === 0) plusList.shift();
+    }
+    // 精算ループ（貰う人に優先して支払う）
+    while (plusList.length > 0 && minusList.length > 0) {
+        const payer = minusList[0];
+        const receiver = plusList[0];
+        const amount = Math.min(payer.amount, receiver.amount);
+        settlements.push(`${payer.name} → ${receiver.name}：${amount.toFixed(0)} 円`);
+        payer.amount -= amount;
+        receiver.amount -= amount;
+        if (payer.amount === 0) {
+            minusList.shift();
         }
+        if (receiver.amount === 0) {
+            plusList.shift();
+        }
+    }
+    chargeSum = 0;
+    arrExpenseRecords.forEach(record => {
+        chargeSum += record["charge"];
+    })
+    //精算案の表示.
+    adjustment.innerHTML = "";
+    const resultDiv = document.createElement("div");
+    resultDiv.innerHTML = `<h3>精算案</h3><ul>${settlements.map(s => `<li>${s}</li>`).join("")}</ul>`;
+    resultDiv.innerHTML += `<ul>合計支出額：${chargeSum}円</ul>`;
+    adjustment.appendChild(resultDiv);
+    adjustment.scrollIntoView({
+        behavior: "auto",
+    });
+}
 
-        chargeSum = arrExpenseRecords.reduce((sum, r) => sum + r.charge, 0);
+/**
+ * メンバーそれぞれの支払金額の計算
+ */
+const calculationCharge = (member) => {
+    let pay = 0;
+    let receive = 0;
+    arrExpenseRecords.forEach(record => {
+        if (record.payer === member) {
+            pay += record.charge;
+        }
+        if (record.checkedMember.includes(member)) {
+            receive += record.charge / record.checkedMember.length;
+        }
+    })
+    chargeAdjustmentObj[member] = (pay - receive);
+}
 
-        adjustment.innerHTML = `<h3>精算案</h3><ul>${settlements.map(s => `<li>${s}</li>`).join("")}</ul><ul>合計支出額：${chargeSum}円</ul>`;
-        addData("resultDiv", adjustment.innerHTML);
-    };
+/**
+ * 新たに追加された立替記録を配列に追加
+ */
+const addExpenseRecords = (payer, checkedMember, purpose, charge) => {
+    const expenseRecords = {
+        purpose: purpose,
+        payer: payer,
+        checkedMember: checkedMember,
+        charge: Number(charge),
+    }
+    arrExpenseRecords.push(expenseRecords);
+}
 
-    const calculationCharge = (member) => {
-        let pay = 0, receive = 0;
-        arrExpenseRecords.forEach(record => {
-            if (record.payer === member) pay += record.charge;
-            const numMembers = record.checkedMember.length;
-            if (record.checkedMember.includes(member)) receive += record.charge / numMembers;
+/**
+ * 立替え記録一覧の作成
+ */
+const createAdjustmentTable = (arrExpenseRecords) => {
+    containerTable.innerHTML = "";
+    const table = document.createElement("table");
+    const trHeader = document.createElement("tr");
+    ["立て替えた物", "立て替えた人", "対象メンバ", "金額(円)"].forEach(val => {
+        const th = document.createElement("th");
+        th.textContent = val;
+        trHeader.appendChild(th);
+    });
+    table.appendChild(trHeader);
+    arrExpenseRecords.forEach(record => {
+        const tr = document.createElement("tr");
+        ["purpose", "payer", "checkedMember", "charge"].forEach(val => {
+            const td = document.createElement("td");
+            td.textContent = record[val];
+            //金額は右寄せで表示.
+            if (val === "charge") {
+                td.style.textAlign = "right";
+            }
+            tr.appendChild(td);
+        })
+        tr.addEventListener("click", () => {
+            table.querySelectorAll("tr").forEach(r => r.classList.remove("highlight"));
+            setEditButtonsAndContainers(false, "none");
+            selectedRecord = record;
+            tr.classList.add("highlight");
+            errRowBtn.textContent
+                = "編集、削除以外は「選択解除」を押してね";
+        })
+        table.appendChild(tr);
+    })
+    containerTable.appendChild(table);
+}
+
+const setEditButtonsAndContainers = (disableButtons, containerDisplay) => {
+    editRowBtn.disabled = disableButtons;
+    deleteRowBtn.disabled = disableButtons;
+    quitEdit.disabled = disableButtons;
+    groupSetupContainer.style.display = containerDisplay;
+    expenseEntryContainer.style.display = containerDisplay;
+}
+
+/**
+ * 編集ボタン押下時の処理
+ */
+editRowBtn.addEventListener("click", () => {
+    mode.textContent = "編集中";
+    errRowBtn.textContent = "";
+    setEditButtonsAndContainers(true, "block");
+    containerTable.querySelectorAll("tr").forEach(r => r.classList.remove("highlight"));
+    //プルダウンリストの選択を変更.
+    const opt = select.options;
+    for (let i = 0; i < opt.length; i++) {
+        if (opt[i].textContent === selectedRecord["payer"]) {
+            select.selectedIndex = i; // その option を選択状態にする
+            break;
+        }
+    }
+    //チェックボックスのチェックを変更.
+    const labels = receive.querySelectorAll("label");
+    labels.forEach(label => {
+        const checkbox = label.querySelector("input[type=checkbox]");
+        if (selectedRecord["checkedMember"].includes(label.textContent.trim())) {
+            checkbox.checked = true;
+        }
+        else {
+            checkbox.checked = false;
+        }
+    });
+    purpose.value = selectedRecord["purpose"];
+    charge.value = selectedRecord["charge"];
+    select.scrollIntoView({
+        behavior: "smooth",
+    });
+})
+
+/**
+ * 削除ボタン押下時の処理
+ */
+deleteRowBtn.addEventListener("click", () => {
+    errRowBtn.textContent = "";
+    setEditButtonsAndContainers(true, "block");
+    document.getElementById("containerTable").querySelector(".highlight").remove();
+    arrExpenseRecords = arrExpenseRecords.filter(val => val !== selectedRecord);
+    createAdjustmentCalc();
+    if (arrExpenseRecords.length === 0) {
+        recordsContainer.style.display = "none";
+        select.scrollIntoView({
+            behavior: "smooth",
         });
-        chargeAdjustmentObj[member] = receive - pay;
-    };
-});
+    }
+})
+
+/**
+ * 選択解除ボタン押下時の処理
+ */
+document.getElementById("quitEdit").addEventListener("click", () => {
+    containerTable.querySelectorAll("tr").forEach(r => r.classList.remove("highlight"));
+    selectedRecord = null;
+    setEditButtonsAndContainers(true, "block");
+    adjustment.scrollIntoView({
+        behavior: "auto",
+    });
+    errRowBtn.textContent = "";
+})

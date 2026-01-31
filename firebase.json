@@ -22,7 +22,7 @@
   "hosting": [
     {
       "target": "walica",
-      "public": "walica/public",
+      "public": "public/walica",
       "ignore": [
         "firebase.json",
         "**/.*",
