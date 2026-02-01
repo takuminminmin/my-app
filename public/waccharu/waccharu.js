@@ -1,11 +1,7 @@
 // Firebase プロジェクトを決定
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 // Firestore を使うための関数群（DB インスタンス取得・参照・読み書き）
-import {
-  getFirestore,
-  doc,
-  getDoc
-} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import {getFirestore,doc,getDoc} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAYC343ZbQqLgSFszHDZc0ef3_m40GIi1M",
@@ -19,14 +15,27 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ============================
-// groupId を URL から取得
+//  URLからgroupId取得
 // ============================
-const params = new URLSearchParams(window.location.search);
-const groupId = params.get("group");
-if (!groupId) {
-  alert("グループURLが不正です");
-  throw new Error("groupId not found");
+async function init() {
+	const params = new URLSearchParams(window.location.search);
+	const groupId = params.get("group");
+	if (!groupId) {
+		// groupIdがない場合 → グループ作成画面に遷移
+	    window.location.href = "createGroup.html";
+	    return;
+	}
+	const groupRef = doc(db, "waccharuGroups", groupId);
+	const groupSnap = await getDoc(groupRef);
+	if (groupSnap.exists()) {
+		displayGroupData(groupSnap.data());
+	}
+	else{
+	    alert("指定されたグループは存在しません。新しく作成してください。");
+	    window.location.href = "createGroup.html";
+	}
 }
+init();
 
 let memberArr = [];
 let chargeSum = 0;
@@ -52,28 +61,13 @@ const groupSetupContainer = document.getElementById("groupSetupContainer");
 const expenseEntryContainer = document.getElementById("expenseEntryContainer");
 const recordsContainer = document.getElementById("recordsContainer");
 
-// ============================
-// Firestore: グループ取得（読むだけ）
-// ============================
-const loadGroupFromFirestore = async (groupId) => {
-  if (!db) return null;
-  const groupRef = doc(db, "waccharuGroups", groupId);
-  const snap = await getDoc(groupRef);
-  if (!snap.exists()) {
-    return null;
-  }
-  return snap.data();
-};
 
-window.addEventListener("DOMContentLoaded", async () => {
-  const groupData = await loadGroupFromFirestore(groupId);
-  if (groupData) {
-    groupName.value = groupData.groupName;
+function displayGroupData(groupData) {
+	groupName.value = groupData.groupName;
     console.log("groupData:"+groupName.value);
     memberArr = [...groupData.members];
     memberArr.forEach(name => createMember(name, true));
-  }
-});
+}
 
 deleteAll.addEventListener("click", () => {
     location.reload();
