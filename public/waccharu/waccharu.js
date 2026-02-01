@@ -8,12 +8,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBUdGuVTpHhVWkTM8mH0yt_cMwDTnKR5Dg",
-  authDomain: "walicadb.firebaseapp.com",
-  projectId: "walicadb",
-  storageBucket: "walicadb.firebasestorage.app",
-  messagingSenderId: "450857734201",
-  appId: "1:450857734201:web:f54c9546a0c071b8833de8",
+  apiKey: "AIzaSyAYC343ZbQqLgSFszHDZc0ef3_m40GIi1M",
+  authDomain: "waccharu-app.firebaseapp.com",
+  projectId: "waccharu-app",
+  storageBucket: "waccharu-app.firebasestorage.app",
+  messagingSenderId: "295106700334",
+  appId: "1:295106700334:web:3f68bc0255c2da2e3b6bbf"
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -57,7 +57,7 @@ const recordsContainer = document.getElementById("recordsContainer");
 // ============================
 const loadGroupFromFirestore = async (groupId) => {
   if (!db) return null;
-  const groupRef = doc(db, "walicaGroups", groupId);
+  const groupRef = doc(db, "waccharuGroups", groupId);
   const snap = await getDoc(groupRef);
   if (!snap.exists()) {
     return null;

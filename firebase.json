@@ -21,8 +21,8 @@
 
   "hosting": [
     {
-      "target": "walica",
-      "public": "public/walica",
+      "site": "waccharu-app",
+      "public": "public/waccharu",
       "ignore": [
         "firebase.json",
         "**/.*",

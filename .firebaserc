@@ -1,12 +1,12 @@
 {
   "projects": {
-    "default": "walicadb"
+    "default": "waccharu-app"
   },
   "targets": {
-    "walicadb": {
+    "waccharu-app": {
       "hosting": {
-        "walica": [
-          "walicadb"
+        "waccharu": [
+          "waccharu"
         ]
       }
     }
